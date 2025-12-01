@@ -1,0 +1,13 @@
+{
+    "name": "ministore-app",
+    "version": "1.0.0",
+    "description": "MiniStore Application",
+    "scripts": {
+        "install-all": "cd backend && npm install && cd ../frontend && npm install",
+        "start": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+        "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\""
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}
