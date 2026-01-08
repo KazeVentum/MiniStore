@@ -1,1 +1,0 @@
-ALTER TABLE PEDIDOS ADD COLUMN fecha_limite DATE AFTER fecha_pedido;

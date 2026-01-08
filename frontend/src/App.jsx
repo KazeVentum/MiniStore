@@ -21,8 +21,8 @@ const AppContent = () => {
             <Link
                 to={to}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
-                        ? 'bg-gradient-to-r from-rosa-secundario to-rosa-oscuro text-white shadow-lg shadow-pink-500/20'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-rosa-secundario to-rosa-oscuro text-white shadow-lg shadow-pink-500/20'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-white/5'
                     }`}
             >
                 <Icon className="h-5 w-5" />
@@ -88,7 +88,7 @@ const AppContent = () => {
 
 function App() {
     return (
-        <Router>
+        <Router basename="/ministore">
             <AppContent />
         </Router>
     );

@@ -5,6 +5,7 @@
 DROP DATABASE IF EXISTS bisuteria_ventas;
 CREATE DATABASE bisuteria_ventas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE bisuteria_ventas;
+SET NAMES utf8mb4;
 
 -- ============================================
 -- TABLAS PRINCIPALES
