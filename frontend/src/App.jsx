@@ -45,9 +45,9 @@ const AppContent = () => {
 
                     <nav className="flex-1 space-y-2 px-3 py-4">
                         <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
-                        <NavLink to="/productos" icon={Package}>Productos</NavLink>
                         <NavLink to="/pedidos" icon={ShoppingBag}>Pedidos</NavLink>
                         <NavLink to="/clientes" icon={Users}>Clientes</NavLink>
+                        <NavLink to="/productos" icon={Package}>Productos</NavLink>
                     </nav>
 
                     <div className="p-4 border-t border-gray-100 dark:border-gray-700/50">

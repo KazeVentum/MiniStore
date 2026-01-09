@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProductos, getClientes, getCanales, createPedido } from '../services/api';
+import { getProductos, getClientes, getCanales, createPedido, createCliente, createProducto, getCategorias } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select } from './ui/select';
-import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
+import Modal from './ui/modal';
+import { Plus, Trash2, Save, ArrowLeft, UserPlus } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 
 const NuevoPedido = () => {
@@ -15,6 +16,7 @@ const NuevoPedido = () => {
     const [clientes, setClientes] = useState([]);
     const [canales, setCanales] = useState([]);
     const [productos, setProductos] = useState([]);
+    const [categorias, setCategorias] = useState([]); // For product creation
 
     const [formData, setFormData] = useState({
         id_cliente: '',
@@ -30,7 +32,27 @@ const NuevoPedido = () => {
 
     const [selectedProduct, setSelectedProduct] = useState('');
     const [quantity, setQuantity] = useState(1);
-    const [diasRestantes, setDiasRestantes] = useState(null); // New state for calculation
+    const [diasRestantes, setDiasRestantes] = useState(null);
+
+    // Quick Client Creation States
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [clientFormData, setClientFormData] = useState({
+        nombre_cliente: '',
+        telefono: '',
+        direccion: '',
+        notas: ''
+    });
+
+    // Quick Product Creation States
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [productFormData, setProductFormData] = useState({
+        nombre_producto: '',
+        descripcion: '',
+        precio: '',
+        tamano: 'unico',
+        imagen_url: '',
+        id_categoria: ''
+    });
 
     useEffect(() => {
         if (formData.fecha_limite) {
@@ -38,7 +60,7 @@ const NuevoPedido = () => {
             hoy.setHours(0, 0, 0, 0);
             const limite = new Date(formData.fecha_limite);
             limite.setHours(0, 0, 0, 0);
-            
+
             const diffTime = limite - hoy;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             setDiasRestantes(diffDays);
@@ -51,14 +73,16 @@ const NuevoPedido = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [cliData, canData, prodData] = await Promise.all([
+                const [cliData, canData, prodData, catData] = await Promise.all([
                     getClientes(),
                     getCanales(),
-                    getProductos()
+                    getProductos(),
+                    getCategorias()
                 ]);
                 setClientes(cliData);
                 setCanales(canData);
                 setProductos(prodData);
+                setCategorias(catData);
             } catch (error) {
                 console.error("Error loading data", error);
             } finally {
@@ -122,6 +146,61 @@ const NuevoPedido = () => {
         return subtotal + parseFloat(formData.costo_envio || 0);
     };
 
+    const handleClientInputChange = (e) => {
+        const { name, value } = e.target;
+        setClientFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleClientSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const newClient = await createCliente(clientFormData);
+            // Refresh client list
+            const updatedClients = await getClientes();
+            setClientes(updatedClients);
+
+            // Auto-select new client
+            setFormData(prev => ({ ...prev, id_cliente: newClient.id }));
+
+            // Close modal and reset form
+            setIsClientModalOpen(false);
+            setClientFormData({ nombre_cliente: '', telefono: '', direccion: '', notas: '' });
+        } catch (error) {
+            alert('Error al crear cliente rápido');
+        }
+    };
+
+    const handleProductInputChange = (e) => {
+        const { name, value } = e.target;
+        setProductFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleProductSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const newProduct = await createProducto(productFormData);
+            // Refresh product list
+            const updatedProducts = await getProductos();
+            setProductos(updatedProducts);
+
+            // Auto-select new product
+            setSelectedProduct(newProduct.id);
+
+            // Close modal and reset form
+            setIsProductModalOpen(false);
+            setProductFormData({
+                nombre_producto: '',
+                descripcion: '',
+                precio: '',
+                tamano: 'unico',
+                imagen_url: '',
+                id_categoria: ''
+            });
+        } catch (error) {
+            alert('Error al crear producto rápido');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (formData.productos.length === 0) {
@@ -155,7 +234,16 @@ const NuevoPedido = () => {
                         <CardHeader><CardTitle className="text-gray-900 dark:text-white">Detalles del Pedido</CardTitle></CardHeader>
                         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label>Cliente</Label>
+                                <Label className="flex justify-between items-center">
+                                    Cliente
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsClientModalOpen(true)}
+                                        className="text-[10px] bg-rosa-primario/50 text-rosa-oscuro px-2 py-0.5 rounded-full hover:bg-rosa-primario transition-colors flex items-center gap-1"
+                                    >
+                                        <Plus className="h-2 w-2" /> Nuevo
+                                    </button>
+                                </Label>
                                 <Select name="id_cliente" value={formData.id_cliente} onChange={handleInputChange} required>
                                     <option value="">Seleccionar Cliente...</option>
                                     {clientes.map(c => (
@@ -181,9 +269,9 @@ const NuevoPedido = () => {
                                 <Input type="date" name="fecha_limite" value={formData.fecha_limite} onChange={handleInputChange} />
                                 {diasRestantes !== null && (
                                     <p className={`text-sm mt-1 ${diasRestantes < 0 ? 'text-red-500' : diasRestantes < 3 ? 'text-orange-500' : 'text-green-600'}`}>
-                                        {diasRestantes < 0 ? `Vencido hace ${Math.abs(diasRestantes)} días` : 
-                                         diasRestantes === 0 ? 'Vence hoy' : 
-                                         `${diasRestantes} días restantes`}
+                                        {diasRestantes < 0 ? `Vencido hace ${Math.abs(diasRestantes)} días` :
+                                            diasRestantes === 0 ? 'Vence hoy' :
+                                                `${diasRestantes} días restantes`}
                                     </p>
                                 )}
                             </div>
@@ -210,7 +298,16 @@ const NuevoPedido = () => {
                         <CardContent className="space-y-4">
                             <div className="flex gap-2 items-end">
                                 <div className="flex-1">
-                                    <Label>Producto</Label>
+                                    <Label className="flex justify-between items-center">
+                                        Producto
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsProductModalOpen(true)}
+                                            className="text-[10px] bg-rosa-primario/50 text-rosa-oscuro px-2 py-0.5 rounded-full hover:bg-rosa-primario transition-colors flex items-center gap-1"
+                                        >
+                                            <Plus className="h-2 w-2" /> Nuevo
+                                        </button>
+                                    </Label>
                                     <Select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
                                         <option value="">Agregar producto...</option>
                                         {productos.map(p => (
@@ -304,6 +401,124 @@ const NuevoPedido = () => {
                     </Card>
                 </div>
             </form>
+            {/* Quick Client Modal */}
+            <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title="Registro Rápido de Cliente ✨">
+                <form onSubmit={handleClientSubmit} className="space-y-4">
+                    <div>
+                        <Label htmlFor="nombre_cliente">Nombre Completo</Label>
+                        <Input
+                            id="nombre_cliente"
+                            name="nombre_cliente"
+                            value={clientFormData.nombre_cliente}
+                            onChange={handleClientInputChange}
+                            required
+                            placeholder="Ej: Maria Lopez"
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="telefono">Teléfono</Label>
+                            <Input
+                                id="telefono"
+                                name="telefono"
+                                value={clientFormData.telefono}
+                                onChange={handleClientInputChange}
+                                placeholder="300 123 4567"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="direccion">Dirección</Label>
+                            <Input
+                                id="direccion"
+                                name="direccion"
+                                value={clientFormData.direccion}
+                                onChange={handleClientInputChange}
+                                placeholder="Calle 123 #45-67"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="notas">Notas Internas</Label>
+                        <Input
+                            id="notas"
+                            name="notas"
+                            value={clientFormData.notas}
+                            onChange={handleClientInputChange}
+                            placeholder="Ej: Prefiere entregas en la mañana"
+                        />
+                    </div>
+                    <Button type="submit" className="w-full mt-4 bg-rosa-secundario hover:bg-rosa-oscuro text-white shadow-md shadow-rosa-secundario/20">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Registrar y Seleccionar ✨
+                    </Button>
+                </form>
+            </Modal>
+
+            {/* Quick Product Modal */}
+            <Modal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} title="Registro Rápido de Producto 💍">
+                <form onSubmit={handleProductSubmit} className="space-y-4">
+                    <div>
+                        <Label htmlFor="quick_nombre_producto">Nombre</Label>
+                        <Input
+                            id="quick_nombre_producto"
+                            name="nombre_producto"
+                            value={productFormData.nombre_producto}
+                            onChange={handleProductInputChange}
+                            required
+                            placeholder="Ej: Anillo de Plata"
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="quick_descripcion">Descripción</Label>
+                        <Input
+                            id="quick_descripcion"
+                            name="descripcion"
+                            value={productFormData.descripcion}
+                            onChange={handleProductInputChange}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="quick_precio">Precio</Label>
+                            <Input
+                                id="quick_precio"
+                                name="precio"
+                                type="number"
+                                step="1"
+                                value={productFormData.precio}
+                                onChange={handleProductInputChange}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="quick_tamano">Tamaño</Label>
+                            <Select id="quick_tamano" name="tamano" value={productFormData.tamano} onChange={handleProductInputChange}>
+                                <option value="unico">Único</option>
+                                <option value="pequeño">Pequeño</option>
+                                <option value="mediano">Mediano</option>
+                                <option value="grande">Grande</option>
+                            </Select>
+                        </div>
+                    </div>
+                    <div>
+                        <Label htmlFor="quick_id_categoria">Categoría</Label>
+                        <Select id="quick_id_categoria" name="id_categoria" value={productFormData.id_categoria} onChange={handleProductInputChange} required>
+                            <option value="">Seleccionar...</option>
+                            {categorias.map(cat => (
+                                <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre_categoria}</option>
+                            ))}
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="quick_imagen_url">URL Imagen</Label>
+                        <Input id="quick_imagen_url" name="imagen_url" value={productFormData.imagen_url} onChange={handleProductInputChange} placeholder="https://..." />
+                    </div>
+                    <Button type="submit" className="w-full mt-4 bg-rosa-secundario hover:bg-rosa-oscuro text-white shadow-md shadow-rosa-secundario/20">
+                        <Save className="h-4 w-4 mr-2" />
+                        Guardar y Agregar 💍
+                    </Button>
+                </form>
+            </Modal>
         </div>
     );
 };
