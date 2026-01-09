@@ -6,6 +6,13 @@ import path from 'path'
 export default defineConfig({
     base: '/ministore/',
     plugins: [react()],
+    server: {
+        host: true,
+        port: 5173,
+        watch: {
+            usePolling: true,
+        },
+    },
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
