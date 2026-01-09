@@ -27,6 +27,7 @@ const NuevoPedido = () => {
         requiere_envio: false,
         direccion_envio: '',
         notas: '',
+        metodo_pago: 'Efectivo',
         productos: [] // { id_producto, cantidad, precio, nombre }
     });
 
@@ -286,6 +287,16 @@ const NuevoPedido = () => {
                                     <Input name="direccion_envio" value={formData.direccion_envio} onChange={handleInputChange} />
                                 </div>
                             )}
+                            <div className="md:col-span-2">
+                                <Label>Método de Pago</Label>
+                                <Select name="metodo_pago" value={formData.metodo_pago} onChange={handleInputChange} required>
+                                    <option value="Efectivo">💵 Efectivo</option>
+                                    <option value="Nequi">📱 Nequi</option>
+                                    <option value="Daviplata">📱 Daviplata</option>
+                                    <option value="Transferencia">🏦 Transferencia Bancaria</option>
+                                    <option value="Otro">✨ Otro</option>
+                                </Select>
+                            </div>
                             <div className="md:col-span-2">
                                 <Label>Notas</Label>
                                 <Input name="notas" value={formData.notas} onChange={handleInputChange} />

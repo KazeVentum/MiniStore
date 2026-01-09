@@ -4,7 +4,7 @@ import { getPedidos, getPedidoById, updateEstadoPedido } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import Modal from './ui/modal';
-import { Clock, CheckCircle, XCircle, Truck, Plus, Eye, User, MapPin, Phone, Calendar, DollarSign } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Truck, Plus, Eye, User, MapPin, Phone, Calendar, DollarSign, CreditCard } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 
 const Pedidos = () => {
@@ -109,6 +109,10 @@ const Pedidos = () => {
                                         <div className="flex items-center gap-1">
                                             <User className="h-4 w-4" />
                                             {pedido.nombre_cliente}
+                                        </div>
+                                        <div className="flex items-center gap-1 font-bold text-gray-900 dark:text-rosa-primario">
+                                            <CreditCard className="h-4 w-4" />
+                                            {pedido.metodo_pago}
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <DollarSign className="h-4 w-4" />

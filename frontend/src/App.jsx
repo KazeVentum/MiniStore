@@ -5,7 +5,16 @@ import Productos from './components/Productos';
 import Pedidos from './components/Pedidos';
 import NuevoPedido from './components/NuevoPedido';
 import Clientes from './components/Clientes';
-import { LayoutDashboard, Package, ShoppingBag, Users, Menu } from 'lucide-react';
+import ResumenVentas from './components/ResumenVentas';
+import {
+    LayoutDashboard,
+    Package,
+    ShoppingCart, // Changed from ShoppingBag to ShoppingCart
+    Users,
+    Menu,
+    X, // Added X
+    BarChart3 // Added BarChart3
+} from 'lucide-react';
 import ThemeToggle from './components/ui/theme-toggle';
 import { cn } from './lib/utils';
 
@@ -45,7 +54,8 @@ const AppContent = () => {
 
                     <nav className="flex-1 space-y-2 px-3 py-4">
                         <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
-                        <NavLink to="/pedidos" icon={ShoppingBag}>Pedidos</NavLink>
+                        <NavLink to="/pedidos" icon={ShoppingCart}>Pedidos</NavLink>
+                        <NavLink to="/resumen" icon={BarChart3}>Resumen</NavLink>
                         <NavLink to="/clientes" icon={Users}>Clientes</NavLink>
                         <NavLink to="/productos" icon={Package}>Productos</NavLink>
                     </nav>
@@ -77,6 +87,7 @@ const AppContent = () => {
                             <Route path="/productos" element={<Productos />} />
                             <Route path="/pedidos" element={<Pedidos />} />
                             <Route path="/pedidos/nuevo" element={<NuevoPedido />} />
+                            <Route path="/resumen" element={<ResumenVentas />} />
                             <Route path="/clientes" element={<Clientes />} />
                         </Routes>
                     </div>

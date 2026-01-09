@@ -35,6 +35,18 @@ const Dashboard = () => {
 
     if (loading) return <div className="p-8 text-rosa-oscuro dark:text-rosa-primario">Cargando dashboard... 💖</div>;
 
+    // Aggregate sales by day for the line chart
+    const aggregatedVentas = ventasRecientes.reduce((acc, current) => {
+        const date = new Date(current.fecha_pedido).toISOString().split('T')[0];
+        if (!acc[date]) {
+            acc[date] = { fecha_pedido: date, total: 0 };
+        }
+        acc[date].total += parseFloat(current.total);
+        return acc;
+    }, {});
+
+    const chartData = Object.values(aggregatedVentas).sort((a, b) => new Date(a.fecha_pedido) - new Date(b.fecha_pedido));
+
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-bold text-rosa-oscuro dark:text-white">Panel de Control ✨</h1>
@@ -99,34 +111,48 @@ const Dashboard = () => {
                     </CardHeader>
                     <CardContent className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={[...ventasRecientes].reverse()}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                                 <XAxis
                                     dataKey="fecha_pedido"
                                     tickFormatter={(value) => {
                                         const date = new Date(value);
-                                        const year = date.getFullYear();
-                                        const month = date.toLocaleDateString('es-ES', { month: 'short' }).toUpperCase();
-                                        const day = String(date.getDate()).padStart(2, '0');
-                                        return `${year}-${month}-${day}`;
+                                        return `${date.getUTCDate()}/${date.getUTCMonth() + 1}`;
                                     }}
-                                    tick={{ fontSize: 11 }}
+                                    tick={{ fontSize: 10 }}
+                                    axisLine={false}
+                                    tickLine={false}
                                 />
                                 <YAxis
                                     tickFormatter={(value) => formatCurrency(value).replace('$ ', '$')}
-                                    tick={{ fontSize: 11 }}
+                                    tick={{ fontSize: 10 }}
+                                    domain={[0, 'auto']}
+                                    padding={{ top: 20 }}
+                                    axisLine={false}
+                                    tickLine={false}
                                 />
                                 <Tooltip
-                                    formatter={(value) => formatCurrency(value)}
+                                    contentStyle={{
+                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                                    }}
+                                    formatter={(value) => [formatCurrency(value), 'Total']}
                                     labelFormatter={(label) => {
                                         const date = new Date(label);
-                                        const year = date.getFullYear();
-                                        const month = date.toLocaleDateString('es-ES', { month: 'short' }).toUpperCase();
-                                        const day = String(date.getDate()).padStart(2, '0');
-                                        return `${year}-${month}-${day}`;
+                                        return date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
                                     }}
                                 />
-                                <Line type="monotone" dataKey="total" stroke="#EC4899" strokeWidth={3} dot={{ r: 6, fill: '#EC4899', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
+                                <Line
+                                    type="monotone"
+                                    dataKey="total"
+                                    stroke="#EC4899"
+                                    strokeWidth={4}
+                                    dot={{ r: 4, fill: '#EC4899', strokeWidth: 2, stroke: '#fff' }}
+                                    activeDot={{ r: 6, strokeWidth: 0 }}
+                                    animationDuration={1500}
+                                />
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>

@@ -24,6 +24,11 @@ export const getProductosTop = async () => {
     return response.data;
 };
 
+export const getVentasMensuales = async (mes, anio) => {
+    const response = await api.get(`/reportes/ventas-mensuales?mes=${mes}&anio=${anio}`);
+    return response.data;
+};
+
 export const getProductos = async (categoria) => {
     const params = categoria ? { categoria } : {};
     const response = await api.get('/productos', { params });

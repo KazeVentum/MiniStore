@@ -8,7 +8,7 @@ exports.getPedidos = async (req, res) => {
             FROM PEDIDOS p
             JOIN CLIENTES c ON p.id_cliente = c.id_cliente
             JOIN CANALES_VENTA cv ON p.id_canal = cv.id_canal
-            ORDER BY p.fecha_pedido DESC
+            ORDER BY p.id_pedido DESC
         `);
         res.json(rows);
     } catch (error) {
@@ -55,13 +55,13 @@ exports.createPedido = async (req, res) => {
 
         const {
             fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio,
-            requiere_envio, direccion_envio, notas, productos
+            requiere_envio, direccion_envio, notas, metodo_pago, productos
         } = req.body;
 
         // 1. Create Order
         const [orderResult] = await connection.query(
-            'INSERT INTO PEDIDOS (fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas]
+            'INSERT INTO PEDIDOS (fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago || 'No especificado']
         );
         const pedidoId = orderResult.insertId;
 
