@@ -177,6 +177,17 @@ const Pedidos = () => {
                                         </span>
                                     </div>
                                 )}
+                                <div className="space-y-1">
+                                    <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Canal de Venta</span>
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">{selectedOrder.nombre_canal}</span>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Método de Pago</span>
+                                    <span className="text-rosa-oscuro dark:text-rosa-primario font-bold flex items-center gap-1">
+                                        <CreditCard className="h-3 w-3" />
+                                        {selectedOrder.metodo_pago}
+                                    </span>
+                                </div>
                                 <div className="md:col-span-2 space-y-1">
                                     <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Dirección de Envío</span>
                                     <span className="text-gray-700 dark:text-gray-300">{selectedOrder.direccion || 'N/A'}</span>
