@@ -69,6 +69,7 @@ CREATE TABLE PEDIDOS (
     costo_envio DECIMAL(10,2) DEFAULT 0,
     total DECIMAL(10,2) GENERATED ALWAYS AS (subtotal + IFNULL(costo_envio, 0)) STORED,
     estado ENUM('pendiente', 'en_proceso', 'completado', 'entregado', 'cancelado') DEFAULT 'pendiente',
+    metodo_pago VARCHAR(50) DEFAULT 'No especificado',
     requiere_envio BOOLEAN DEFAULT FALSE,
     direccion_envio TEXT,
     notas TEXT,
