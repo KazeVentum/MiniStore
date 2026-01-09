@@ -99,13 +99,14 @@ const Clientes = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {clientes.map((cliente) => (
-                    <Card key={cliente.id_cliente} className="hover:shadow-md transition-shadow">
+                    <Card key={cliente.id_cliente} className="hover:shadow-lg transition-all border-none bg-white/70 dark:bg-dark-surface/50 backdrop-blur-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-rosa-primario/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
                         <CardHeader className="pb-2">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rosa-primario to-rosa-secundario flex items-center justify-center text-white font-bold text-lg">
+                            <div className="flex items-center gap-4 mb-3">
+                                <div className="w-14 h-14 rounded-2xl bg-rosa-primario flex items-center justify-center text-rosa-oscuro font-bold text-xl shadow-sm border border-white/50">
                                     {cliente.nombre_cliente.charAt(0).toUpperCase()}
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{cliente.nombre_cliente}</h3>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{cliente.nombre_cliente}</h3>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -128,9 +129,9 @@ const Clientes = () => {
 
                             <div className="flex gap-2 pt-2">
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="flex-1"
+                                    className="flex-1 border-gray-100 dark:border-gray-700 hover:bg-rosa-primario/30 hover:text-rosa-oscuro dark:hover:bg-rosa-primario/10 transition-colors"
                                     onClick={() => handleEdit(cliente)}
                                 >
                                     <Edit className="h-4 w-4 mr-2" /> Editar
@@ -138,7 +139,7 @@ const Clientes = () => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                     onClick={() => handleDelete(cliente.id_cliente)}
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -167,7 +168,9 @@ const Clientes = () => {
                         <Label htmlFor="notas">Notas</Label>
                         <Input id="notas" name="notas" value={formData.notas} onChange={handleInputChange} />
                     </div>
-                    <Button type="submit" className="w-full mt-4">Guardar Cliente 💖</Button>
+                    <Button type="submit" className="w-full mt-4 bg-rosa-secundario hover:bg-rosa-oscuro text-white shadow-md shadow-rosa-secundario/20">
+                        Guardar Cliente 👥
+                    </Button>
                 </form>
             </Modal>
         </div>

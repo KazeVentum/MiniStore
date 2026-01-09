@@ -20,19 +20,19 @@ const AppContent = () => {
         return (
             <Link
                 to={to}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
-                    ? 'bg-gradient-to-r from-rosa-secundario to-rosa-oscuro text-white shadow-lg shadow-pink-500/20'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-white/5'
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
+                    ? 'bg-rosa-secundario text-white shadow-md shadow-rosa-secundario/30 scale-[1.02]'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-rosa-primario/40 dark:hover:bg-white/5'
                     }`}
             >
-                <Icon className="h-5 w-5" />
+                <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-gray-500")} />
                 <span className="font-medium">{children}</span>
             </Link>
         );
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-rosa-suave via-rosa-primario/10 to-rosa-secundario/20 dark:from-indigo-950 dark:via-purple-900 dark:to-pink-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-500">
+        <div className="min-h-screen bg-slate-50 dark:bg-dark-bg text-gris-texto dark:text-gray-100 font-sans transition-colors duration-500">
             <div className="flex h-screen overflow-hidden">
 
                 {/* Sidebar */}

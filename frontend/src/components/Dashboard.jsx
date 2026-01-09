@@ -126,7 +126,7 @@ const Dashboard = () => {
                                         return `${year}-${month}-${day}`;
                                     }}
                                 />
-                                <Line type="monotone" dataKey="total" stroke="#FF69B4" strokeWidth={2} dot={{ r: 4 }} />
+                                <Line type="monotone" dataKey="total" stroke="#EC4899" strokeWidth={3} dot={{ r: 6, fill: '#EC4899', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -147,8 +147,8 @@ const Dashboard = () => {
                                     width={100}
                                     tick={{ fontSize: 12 }}
                                 />
-                                <Tooltip formatter={(value) => [value, 'Vendidos']} />
-                                <Bar dataKey="total_vendido" fill="#FFB6C1" radius={[0, 4, 4, 0]} />
+                                <Tooltip formatter={(value) => [value, 'Vendidos']} cursor={{ fill: 'rgba(236, 72, 153, 0.05)' }} />
+                                <Bar dataKey="total_vendido" fill="#F472B6" radius={[0, 4, 4, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>

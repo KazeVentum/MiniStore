@@ -22,7 +22,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-2xl" }) => 
 
             {/* Modal */}
             <div className={`relative w-full ${maxWidth} max-h-[90vh] flex flex-col transition-all duration-300 z-10 mb-24`}>
-                <div className="relative flex flex-col w-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-2 border-white/40 dark:border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+                <div className="relative flex flex-col w-full bg-white dark:bg-slate-900 border border-white/40 dark:border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50 shrink-0">
                         <h2 className="text-xl font-semibold text-rosa-oscuro dark:text-rosa-primario">{title}</h2>

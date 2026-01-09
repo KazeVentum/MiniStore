@@ -6,7 +6,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select } from './ui/select';
 import Modal from './ui/modal';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, Package } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 
 const Productos = () => {
@@ -110,11 +110,14 @@ const Productos = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {productos.map((prod) => (
                     <Card key={prod.id_producto} className="overflow-hidden hover:shadow-lg transition-shadow">
-                        <div className="h-48 bg-gradient-to-br from-rosa-suave/20 to-white/50 dark:from-gray-800/50 dark:to-gray-900/50 flex items-center justify-center overflow-hidden">
+                        <div className="h-48 bg-slate-100 dark:bg-dark-surface/50 flex items-center justify-center overflow-hidden">
                             {prod.imagen_url ? (
-                                <img src={prod.imagen_url} alt={prod.nombre_producto} className="object-cover h-full w-full" />
+                                <img src={prod.imagen_url} alt={prod.nombre_producto} className="object-cover h-full w-full hover:scale-110 transition-transform duration-500" />
                             ) : (
-                                <div className="text-gray-300 dark:text-gray-600">Sin imagen</div>
+                                <div className="text-gray-300 dark:text-gray-600 flex flex-col items-center">
+                                    <Package className="h-10 w-10 mb-2 opacity-20" />
+                                    <span className="text-xs uppercase tracking-widest font-bold opacity-30">Sin imagen</span>
+                                </div>
                             )}
                         </div>
                         <CardHeader className="pb-2">
@@ -135,9 +138,9 @@ const Productos = () => {
                             </div>
                             <div className="flex gap-2">
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="flex-1"
+                                    className="flex-1 border-gray-100 dark:border-gray-700 hover:bg-rosa-primario/30 hover:text-rosa-oscuro dark:hover:bg-rosa-primario/10 transition-colors"
                                     onClick={() => handleEdit(prod)}
                                 >
                                     <Edit className="h-4 w-4 mr-2" /> Editar
@@ -145,7 +148,7 @@ const Productos = () => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                     onClick={() => handleDelete(prod.id_producto)}
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -202,7 +205,9 @@ const Productos = () => {
                         <Label htmlFor="imagen_url">URL Imagen</Label>
                         <Input id="imagen_url" name="imagen_url" value={formData.imagen_url} onChange={handleInputChange} placeholder="https://..." />
                     </div>
-                    <Button type="submit" className="w-full mt-4">Guardar Producto 💖</Button>
+                    <Button type="submit" className="w-full mt-4 bg-rosa-secundario hover:bg-rosa-oscuro text-white shadow-md shadow-rosa-secundario/20">
+                        Guardar Producto 💍
+                    </Button>
                 </form>
             </Modal>
         </div>

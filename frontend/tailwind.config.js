@@ -9,26 +9,26 @@ export default {
         extend: {
             colors: {
                 rosa: {
-                    suave: '#FFF0F5', // Lavender Blush
-                    primario: '#FFB6C1', // Light Pink
-                    secundario: '#FF69B4', // Hot Pink
-                    oscuro: '#C71585', // Medium Violet Red
-                    profundo: '#8B008B', // Dark Magenta (for dark mode)
+                    suave: '#FAFAFB',
+                    primario: '#FEE2E2',
+                    secundario: '#EC4899',
+                    oscuro: '#BE185D',
+                    profundo: '#831843',
                 },
                 gris: {
-                    fondo: '#F8F9FA',
-                    texto: '#4A4A4A',
-                    claro: '#E9ECEF',
-                    oscuro: '#1F2937', // Gray 800
-                    plata: '#D1D5DB', // Gray 300
+                    fondo: '#F9FAFB',
+                    texto: '#1F2937',
+                    claro: '#F3F4F6',
+                    oscuro: '#111827',
+                    plata: '#9CA3AF',
                 },
                 amarillo: {
-                    warning: '#FFC107',
+                    warning: '#F59E0B',
                 },
                 dark: {
-                    bg: '#1a1b26', // Deep blue-black
-                    surface: '#24283b', // Slightly lighter blue-black
-                    accent: '#7aa2f7', // Soft blue accent
+                    bg: '#0F172A',
+                    surface: '#1E293B',
+                    accent: '#F472B6',
                 }
             },
             animation: {

@@ -52,10 +52,10 @@ const Pedidos = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'pendiente': return 'text-yellow-600 bg-yellow-100 border-yellow-200';
-            case 'completado': return 'text-green-600 bg-green-100 border-green-200';
-            case 'cancelado': return 'text-red-600 bg-red-100 border-red-200';
-            default: return 'text-gray-600 bg-gray-100 border-gray-200';
+            case 'pendiente': return 'text-amber-600 bg-amber-50 border-amber-100';
+            case 'completado': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
+            case 'cancelado': return 'text-rose-600 bg-rose-50 border-rose-100';
+            default: return 'text-slate-600 bg-slate-50 border-slate-100';
         }
     };
 
@@ -80,8 +80,9 @@ const Pedidos = () => {
             {/* Orders List */}
             <div className="grid grid-cols-1 gap-4">
                 {pedidos.map((pedido) => (
-                    <Card key={pedido.id_pedido} className="hover:shadow-md transition-all border-l-4 border-l-rosa-secundario">
-                        <CardContent className="p-6">
+                    <Card key={pedido.id_pedido} className="hover:shadow-lg transition-all border-none bg-white/70 dark:bg-dark-surface/50 backdrop-blur-sm">
+                        <CardContent className="p-6 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1.5 h-full bg-rosa-secundario shadow-[2px_0_8px_rgba(236,72,153,0.3)]"></div>
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                 {/* Order Info */}
                                 <div className="flex-1 cursor-pointer" onClick={() => handleViewDetails(pedido.id_pedido)}>
@@ -144,24 +145,38 @@ const Pedidos = () => {
                 {selectedOrder && (
                     <div className="space-y-6">
                         {/* Client Info Section */}
-                        <div className="bg-rosa-suave/30 dark:bg-white/5 p-4 rounded-lg border border-rosa-suave">
-                            <h3 className="font-semibold text-rosa-oscuro dark:text-rosa-primario mb-3 flex items-center gap-2">
-                                <User className="h-5 w-5" /> Información del Cliente
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2 text-lg">
+                                <div className="p-2 bg-rosa-primario/30 rounded-lg">
+                                    <User className="h-5 w-5 text-rosa-oscuro" />
+                                </div>
+                                Información del Cliente
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 text-sm text-gray-700 dark:text-gray-200">
-                                <p><span className="font-medium dark:text-white">Nombre:</span> {selectedOrder.nombre_cliente}</p>
-                                <p><span className="font-medium dark:text-white">Teléfono:</span> {selectedOrder.telefono || 'N/A'}</p>
-                                <p><span className="font-medium dark:text-white">Fecha Pedido:</span> {new Date(selectedOrder.fecha_pedido).toLocaleDateString()}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                                <div className="space-y-1">
+                                    <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Nombre Completo</span>
+                                    <span className="text-gray-900 dark:text-white font-medium text-base">{selectedOrder.nombre_cliente}</span>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Teléfono</span>
+                                    <span className="text-gray-900 dark:text-white font-medium text-base">{selectedOrder.telefono || 'N/A'}</span>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Fecha Pedido</span>
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">{new Date(selectedOrder.fecha_pedido).toLocaleDateString()}</span>
+                                </div>
                                 {selectedOrder.fecha_limite && (
-                                    <p className={`${new Date(selectedOrder.fecha_limite) < new Date() && selectedOrder.estado === 'pendiente' ? 'text-red-500 font-bold' : ''
-                                        }`}>
-                                        <span className="font-medium dark:text-white text-gray-700">Fecha Límite:</span> {new Date(selectedOrder.fecha_limite).toLocaleDateString()}
-                                    </p>
+                                    <div className="space-y-1">
+                                        <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Fecha Límite</span>
+                                        <span className={`font-bold ${new Date(selectedOrder.fecha_limite) < new Date() && selectedOrder.estado === 'pendiente' ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                            {new Date(selectedOrder.fecha_limite).toLocaleDateString()}
+                                        </span>
+                                    </div>
                                 )}
-                                <p className="md:col-span-2"><span className="font-medium dark:text-white">Dirección:</span> {selectedOrder.direccion || 'N/A'}</p>
-                                {selectedOrder.direccion_envio && (
-                                    <p className="md:col-span-2 text-rosa-oscuro dark:text-rosa-primario"><span className="font-medium dark:text-white">Enviar a:</span> {selectedOrder.direccion_envio}</p>
-                                )}
+                                <div className="md:col-span-2 space-y-1">
+                                    <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Dirección de Envío</span>
+                                    <span className="text-gray-700 dark:text-gray-300">{selectedOrder.direccion || 'N/A'}</span>
+                                </div>
                             </div>
                         </div>
 
