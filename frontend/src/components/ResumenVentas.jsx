@@ -128,7 +128,7 @@ const ResumenVentas = () => {
                                     data.pedidos.map((pedido) => (
                                         <tr key={pedido.id_pedido} className="hover:bg-rosa-primario/5 dark:hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                                {new Date(pedido.fecha_pedido).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' })}
+                                                {new Date(pedido.fecha_pedido).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="font-medium text-gray-900 dark:text-white">{pedido.nombre_cliente}</div>

@@ -3,35 +3,47 @@ import { useNavigate } from 'react-router-dom';
 import { getDashboardStats, getVentasRecientes, getProductosTop } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { DollarSign, ShoppingBag, Package, Clock } from 'lucide-react';
+import { DollarSign, ShoppingBag, Package, Clock, TrendingUp } from 'lucide-react';
+import { Select } from './ui/select';
 import { formatCurrency } from '../lib/utils';
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const [stats, setStats] = useState({ ventasHoy: 0, pedidosHoy: 0, pedidosPendientes: 0, totalProductos: 0 });
+    const [stats, setStats] = useState({ ventasHoy: 0, pedidosHoy: 0, pedidosPendientes: 0, totalProductos: 0, totalHistorico: 0 });
     const [ventasRecientes, setVentasRecientes] = useState([]);
     const [productosTop, setProductosTop] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [periodo, setPeriodo] = useState('7');
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchInitialData = async () => {
             try {
-                const [statsData, ventasData, topData] = await Promise.all([
+                const [statsData, topData] = await Promise.all([
                     getDashboardStats(),
-                    getVentasRecientes('7'),
                     getProductosTop()
                 ]);
                 setStats(statsData);
-                setVentasRecientes(ventasData);
                 setProductosTop(topData);
             } catch (error) {
                 console.error("Error fetching dashboard data", error);
+            }
+        };
+        fetchInitialData();
+    }, []);
+
+    useEffect(() => {
+        const fetchVentas = async () => {
+            try {
+                const ventasData = await getVentasRecientes(periodo);
+                setVentasRecientes(ventasData);
+            } catch (error) {
+                console.error("Error fetching sales data", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchData();
-    }, []);
+        fetchVentas();
+    }, [periodo]);
 
     if (loading) return <div className="p-8 text-rosa-oscuro dark:text-rosa-primario">Cargando dashboard... 💖</div>;
 
@@ -52,14 +64,25 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-rosa-oscuro dark:text-white">Panel de Control ✨</h1>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 dark:from-indigo-500/20 dark:to-indigo-600/10 border-indigo-200/50 dark:border-indigo-500/20">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Total Histórico</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-indigo-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-black text-indigo-800 dark:text-indigo-200">{formatCurrency(stats.totalHistorico)}</div>
+                        <p className="text-xs text-indigo-600/60 dark:text-indigo-400/60">Ventas totales (Evolución)</p>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-200">Ventas Hoy</CardTitle>
                         <DollarSign className="h-4 w-4 text-rosa-oscuro" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.ventasHoy)}</div>
+                        <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.ventasHoy)}</div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{stats.pedidosHoy} pedidos hoy</p>
                     </CardContent>
                 </Card>
@@ -72,7 +95,7 @@ const Dashboard = () => {
                         <Clock className="h-4 w-4 text-amarillo-warning" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-amarillo-warning dark:text-yellow-400">{stats.pedidosPendientes}</div>
+                        <div className="text-xl font-bold text-amarillo-warning dark:text-yellow-400">{stats.pedidosPendientes}</div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Pedidos por atender</p>
                     </CardContent>
                 </Card>
@@ -81,24 +104,24 @@ const Dashboard = () => {
                     onClick={() => navigate('/productos')}
                 >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-200">Total Productos</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-200">Productos</CardTitle>
                         <Package className="h-4 w-4 text-rosa-oscuro" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalProductos}</div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Productos activos</p>
+                        <div className="text-xl font-bold text-gray-900 dark:text-white">{stats.totalProductos}</div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Catálogo activo</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-rosa-primario/5 border-rosa-primario/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-200">Total Ventas (7d)</CardTitle>
+                        <CardTitle className="text-sm font-medium text-rosa-oscuro dark:text-rosa-primario">Ventas ({periodo}d)</CardTitle>
                         <ShoppingBag className="h-4 w-4 text-rosa-oscuro" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                        <div className="text-xl font-bold text-gray-900 dark:text-white">
                             {formatCurrency(ventasRecientes.reduce((acc, curr) => acc + parseFloat(curr.total), 0))}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Últimos 7 días</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Últimos {periodo} días</p>
                     </CardContent>
                 </Card>
             </div>
@@ -106,8 +129,19 @@ const Dashboard = () => {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="col-span-1">
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-gray-900 dark:text-white">Ventas Recientes</CardTitle>
+                        <div className="w-32">
+                            <Select
+                                value={periodo}
+                                onChange={(e) => setPeriodo(e.target.value)}
+                                className="h-8 text-xs bg-white/50 dark:bg-white/5"
+                            >
+                                <option value="7">Últimos 7 días</option>
+                                <option value="15">Últimos 15 días</option>
+                                <option value="30">Últimos 30 días</option>
+                            </Select>
+                        </div>
                     </CardHeader>
                     <CardContent className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -141,7 +175,12 @@ const Dashboard = () => {
                                     formatter={(value) => [formatCurrency(value), 'Total']}
                                     labelFormatter={(label) => {
                                         const date = new Date(label);
-                                        return date.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+                                        return date.toLocaleDateString('es-CO', {
+                                            timeZone: 'UTC',
+                                            weekday: 'long',
+                                            day: 'numeric',
+                                            month: 'long'
+                                        });
                                     }}
                                 />
                                 <Line

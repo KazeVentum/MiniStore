@@ -95,7 +95,7 @@ const Pedidos = () => {
                                     <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
                                         <div className="flex items-center gap-1">
                                             <Calendar className="h-4 w-4" />
-                                            {new Date(pedido.fecha_pedido).toLocaleDateString()}
+                                            {new Date(pedido.fecha_pedido).toLocaleDateString('es-CO', { timeZone: 'UTC' })}
                                         </div>
                                         {pedido.fecha_limite && (
                                             <div className={`flex items-center gap-1 font-medium ${new Date(pedido.fecha_limite) < new Date() && pedido.estado === 'pendiente' ? 'text-red-500' :
@@ -103,7 +103,7 @@ const Pedidos = () => {
                                                     'text-green-600 dark:text-green-400'
                                                 }`}>
                                                 <Clock className="h-4 w-4" />
-                                                {new Date(pedido.fecha_limite).toLocaleDateString()}
+                                                {new Date(pedido.fecha_limite).toLocaleDateString('es-CO', { timeZone: 'UTC' })}
                                             </div>
                                         )}
                                         <div className="flex items-center gap-1">
@@ -167,13 +167,13 @@ const Pedidos = () => {
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Fecha Pedido</span>
-                                    <span className="text-gray-700 dark:text-gray-300 font-medium">{new Date(selectedOrder.fecha_pedido).toLocaleDateString()}</span>
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">{new Date(selectedOrder.fecha_pedido).toLocaleDateString('es-CO', { timeZone: 'UTC' })}</span>
                                 </div>
                                 {selectedOrder.fecha_limite && (
                                     <div className="space-y-1">
                                         <span className="text-gray-400 block uppercase text-[10px] font-bold tracking-wider">Fecha Límite</span>
                                         <span className={`font-bold ${new Date(selectedOrder.fecha_limite) < new Date() && selectedOrder.estado === 'pendiente' ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                                            {new Date(selectedOrder.fecha_limite).toLocaleDateString()}
+                                            {new Date(selectedOrder.fecha_limite).toLocaleDateString('es-CO', { timeZone: 'UTC' })}
                                         </span>
                                     </div>
                                 )}

@@ -104,11 +104,19 @@ exports.getDashboardStats = async (req, res) => {
         // Get total products
         const [totalProducts] = await db.query('SELECT COUNT(*) as count FROM PRODUCTOS WHERE activo = TRUE');
 
+        // Get total historical sales
+        const [historicalSales] = await db.query(`
+            SELECT SUM(total) as total 
+            FROM PEDIDOS 
+            WHERE estado != 'cancelado'
+        `);
+
         res.json({
             ventasHoy: todaySales[0].total || 0,
             pedidosHoy: todaySales[0].count || 0,
             pedidosPendientes: pendingOrders[0].count || 0,
-            totalProductos: totalProducts[0].count || 0
+            totalProductos: totalProducts[0].count || 0,
+            totalHistorico: historicalSales[0].total || 0
         });
     } catch (error) {
         console.error(error);

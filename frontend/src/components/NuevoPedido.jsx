@@ -21,7 +21,7 @@ const NuevoPedido = () => {
     const [formData, setFormData] = useState({
         id_cliente: '',
         id_canal: '',
-        fecha_pedido: new Date().toISOString().split('T')[0],
+        fecha_pedido: new Date().toLocaleDateString('en-CA'),
         fecha_limite: '', // New field
         costo_envio: 0,
         requiere_envio: false,
