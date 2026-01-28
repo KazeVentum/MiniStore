@@ -17,6 +17,7 @@ const Pedidos = () => {
     // Filter states
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedStatus, setSelectedStatus] = useState('todos');
 
     const navigate = useNavigate();
 
@@ -68,7 +69,9 @@ const Pedidos = () => {
     // Derived data
     const pedidosFiltrados = pedidos.filter(p => {
         const d = new Date(p.fecha_pedido);
-        return (d.getUTCMonth() + 1) === parseInt(selectedMonth) && d.getUTCFullYear() === parseInt(selectedYear);
+        const matchFecha = (d.getUTCMonth() + 1) === parseInt(selectedMonth) && d.getUTCFullYear() === parseInt(selectedYear);
+        const matchEstado = selectedStatus === 'todos' || p.estado === selectedStatus;
+        return matchFecha && matchEstado;
     });
 
     const statsMensuales = {
@@ -104,9 +107,9 @@ const Pedidos = () => {
                     <p className="text-gray-600 dark:text-gray-300">Organiza tus ventas y haz seguimiento mensual</p>
                 </div>
 
-                {/* Monthly Navigator */}
-                <div className="flex gap-2 bg-white/50 dark:bg-white/5 p-2 rounded-2xl border border-slate-100 dark:border-white/10 w-full md:w-auto">
-                    <div className="flex-1 md:w-40">
+                {/* Monthly & Status Navigator */}
+                <div className="flex flex-wrap gap-2 bg-white/50 dark:bg-white/5 p-2 rounded-2xl border border-slate-100 dark:border-white/10 w-full md:w-auto">
+                    <div className="flex-1 md:min-w-[120px]">
                         <Select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(e.target.value)}
@@ -126,6 +129,18 @@ const Pedidos = () => {
                             {anios.map(anio => (
                                 <option key={anio} value={anio}>{anio}</option>
                             ))}
+                        </Select>
+                    </div>
+                    <div className="w-32">
+                        <Select
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            className="h-9 text-xs border-transparent bg-transparent font-medium"
+                        >
+                            <option value="todos">Estados: Todos</option>
+                            <option value="borrador">Borradores</option>
+                            <option value="pendiente">Pendientes</option>
+                            <option value="completado">Completados</option>
                         </Select>
                     </div>
                 </div>
@@ -204,9 +219,17 @@ const Pedidos = () => {
                                     <div className="flex-1 cursor-pointer" onClick={() => handleViewDetails(pedido.id_pedido)}>
                                         <div className="flex items-center gap-3 mb-1">
                                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Pedido #{pedido.id_pedido}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusColor(pedido.estado)}`}>
-                                                {pedido.estado}
-                                            </span>
+                                            <div className="flex flex-col gap-1 items-start md:items-end">
+                                                <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(pedido.estado)} shadow-sm inline-flex items-center gap-1.5`}>
+                                                    <div className={`w-1 h-1 rounded-full animate-pulse ${pedido.estado === 'completado' ? 'bg-emerald-500' : pedido.estado === 'pendiente' ? 'bg-amber-500' : 'bg-slate-400'}`}></div>
+                                                    {pedido.estado}
+                                                </div>
+                                                {pedido.ultima_edicion && (
+                                                    <span className="text-[9px] text-gray-400 font-medium italic">
+                                                        Última edición: {new Date(pedido.ultima_edicion).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
                                             <div className="flex items-center gap-1">
@@ -243,38 +266,38 @@ const Pedidos = () => {
                                             <Eye className="h-4 w-4 mr-2" /> Ver Detalles
                                         </Button>
 
+                                        {/* Edit Button for any status */}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-gray-200 dark:border-gray-700 hover:text-rosa-oscuro hover:border-rosa-primario/30"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/pedidos/editar/${pedido.id_pedido}`);
+                                            }}
+                                        >
+                                            <Edit2 className="h-4 w-4 mr-1" /> Editar
+                                        </Button>
+
                                         {pedido.estado === 'borrador' && (
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-gray-200 dark:border-gray-700"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/pedidos/editar/${pedido.id_pedido}`);
-                                                    }}
-                                                >
-                                                    <Edit2 className="h-4 w-4 mr-2" /> Editar
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    className="bg-rosa-primario hover:bg-rosa-oscuro text-white"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleStatusChange(pedido.id_pedido, 'pendiente');
-                                                    }}
-                                                >
-                                                    <CheckCircle className="h-4 w-4 mr-2" /> Activar
-                                                </Button>
-                                            </div>
+                                            <Button
+                                                size="sm"
+                                                className="bg-rosa-primario hover:bg-rosa-oscuro text-white"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleStatusChange(pedido.id_pedido, 'pendiente');
+                                                }}
+                                            >
+                                                <CheckCircle className="h-4 w-4 mr-2" /> Activar
+                                            </Button>
                                         )}
 
                                         {pedido.estado === 'pendiente' && (
                                             <div className="flex gap-2 border-l pl-2 ml-2">
-                                                <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => handleStatusChange(pedido.id_pedido, 'completado')}>
+                                                <Button size="sm" title="Completar" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => handleStatusChange(pedido.id_pedido, 'completado')}>
                                                     <CheckCircle className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50" onClick={() => handleStatusChange(pedido.id_pedido, 'cancelado')}>
+                                                <Button size="sm" title="Cancelar" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50" onClick={() => handleStatusChange(pedido.id_pedido, 'cancelado')}>
                                                     <XCircle className="h-4 w-4" />
                                                 </Button>
                                             </div>

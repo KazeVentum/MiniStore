@@ -121,7 +121,7 @@ exports.updatePedido = async (req, res) => {
             `UPDATE PEDIDOS SET 
                 fecha_pedido = ?, fecha_limite = ?, id_cliente = ?, id_canal = ?, 
                 costo_envio = ?, requiere_envio = ?, direccion_envio = ?, 
-                notas = ?, metodo_pago = ?, estado = ?
+                notas = ?, metodo_pago = ?, estado = ?, ultima_edicion = NOW()
              WHERE id_pedido = ?`,
             [fecha_pedido, cleanFechaLimite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago || 'No especificado', estado || 'borrador', id]
         );
