@@ -100,7 +100,7 @@ const AppContent = () => {
 
 function App() {
     return (
-        <Router basename="/ministore">
+        <Router>
             <AppContent />
         </Router>
     );
