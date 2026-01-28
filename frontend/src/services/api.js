@@ -70,6 +70,11 @@ export const createPedido = async (pedido) => {
     return response.data;
 };
 
+export const updatePedido = async (id, pedido) => {
+    const response = await api.put(`/pedidos/${id}`, pedido);
+    return response.data;
+};
+
 export const getCategorias = async () => {
     const response = await api.get('/common/categorias');
     return response.data;

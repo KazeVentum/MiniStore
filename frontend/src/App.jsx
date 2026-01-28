@@ -87,6 +87,7 @@ const AppContent = () => {
                             <Route path="/productos" element={<Productos />} />
                             <Route path="/pedidos" element={<Pedidos />} />
                             <Route path="/pedidos/nuevo" element={<NuevoPedido />} />
+                            <Route path="/pedidos/editar/:id" element={<NuevoPedido />} />
                             <Route path="/resumen" element={<ResumenVentas />} />
                             <Route path="/clientes" element={<Clientes />} />
                         </Routes>

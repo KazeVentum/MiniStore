@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getProductos, getClientes, getCanales, createPedido, createCliente, createProducto, getCategorias } from '../services/api';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getProductos, getClientes, getCanales, createPedido, updatePedido, getPedidoById, createCliente, createProducto, getCategorias } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -12,6 +12,8 @@ import { formatCurrency } from '../lib/utils';
 
 const NuevoPedido = () => {
     const navigate = useNavigate();
+    const { id } = useParams();
+    const isEditMode = Boolean(id);
     const [loading, setLoading] = useState(true);
     const [clientes, setClientes] = useState([]);
     const [canales, setCanales] = useState([]);
@@ -148,6 +150,38 @@ const NuevoPedido = () => {
         setQuantity(1);
     };
 
+    useEffect(() => {
+        if (isEditMode) {
+            const loadPedido = async () => {
+                try {
+                    const pedido = await getPedidoById(id);
+                    setFormData({
+                        fecha_pedido: pedido.fecha_pedido.split('T')[0],
+                        fecha_limite: pedido.fecha_limite ? pedido.fecha_limite.split('T')[0] : '',
+                        id_cliente: pedido.id_cliente,
+                        id_canal: pedido.id_canal,
+                        costo_envio: pedido.costo_envio,
+                        requiere_envio: pedido.requiere_envio === 1,
+                        direccion_envio: pedido.direccion_envio || '',
+                        notas: pedido.notas || '',
+                        metodo_pago: pedido.metodo_pago,
+                        estado: pedido.estado,
+                        productos: pedido.detalles.map(d => ({
+                            id_producto: d.id_producto,
+                            nombre: d.nombre_producto, // Fixed mapping
+                            precio: d.precio_unitario,
+                            cantidad: d.cantidad
+                        }))
+                    });
+                } catch (error) {
+                    alert('Error al cargar el pedido');
+                    navigate('/pedidos');
+                }
+            };
+            loadPedido();
+        }
+    }, [id, isEditMode, navigate]);
+
     const removeProduct = (index) => {
         setFormData(prev => ({
             ...prev,
@@ -218,17 +252,27 @@ const NuevoPedido = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (e, forcedStatus = null) => {
+        if (e) e.preventDefault();
         if (formData.productos.length === 0) {
             alert('Agrega al menos un producto');
             return;
         }
         try {
-            await createPedido(formData);
+            const dataToSubmit = {
+                ...formData,
+                estado: forcedStatus || (isEditMode ? formData.estado : 'pendiente')
+            };
+
+            if (isEditMode) {
+                await updatePedido(id, dataToSubmit);
+            } else {
+                await createPedido(dataToSubmit);
+            }
             navigate('/pedidos');
         } catch (error) {
-            alert('Error al crear pedido');
+            const errorMsg = error.response?.data?.message || 'Error al procesar pedido';
+            alert(`Error: ${errorMsg}`);
             console.error(error);
         }
     };
@@ -462,9 +506,19 @@ const NuevoPedido = () => {
                                 <span className="text-lg font-bold text-gray-900 dark:text-white">Total:</span>
                                 <span className="text-xl font-bold text-rosa-oscuro dark:text-rosa-primario">{formatCurrency(calculateTotal())}</span>
                             </div>
-                            <Button type="submit" className="w-full mt-4 bg-rosa-oscuro hover:bg-rosa-primario">
-                                <Save className="mr-2 h-4 w-4" /> Crear Pedido
-                            </Button>
+                            <div className="pt-2 space-y-2">
+                                <Button
+                                    type="button"
+                                    onClick={(e) => handleSubmit(e, 'borrador')}
+                                    variant="outline"
+                                    className="w-full border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" /> Guardar Borrador
+                                </Button>
+                                <Button type="submit" className="w-full bg-rosa-oscuro hover:bg-rosa-primario">
+                                    <Save className="mr-2 h-4 w-4" /> {isEditMode ? 'Guardar Cambios' : 'Crear Pedido'}
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

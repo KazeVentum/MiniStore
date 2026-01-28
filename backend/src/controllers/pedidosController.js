@@ -55,13 +55,16 @@ exports.createPedido = async (req, res) => {
 
         const {
             fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio,
-            requiere_envio, direccion_envio, notas, metodo_pago, productos
+            requiere_envio, direccion_envio, notas, metodo_pago, productos, estado
         } = req.body;
+
+        // Convert empty strings to null for optional dates
+        const cleanFechaLimite = fecha_limite === '' ? null : fecha_limite;
 
         // 1. Create Order
         const [orderResult] = await connection.query(
-            'INSERT INTO PEDIDOS (fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago || 'No especificado']
+            'INSERT INTO PEDIDOS (fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [fecha_pedido, cleanFechaLimite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago || 'No especificado', estado || 'pendiente']
         );
         const pedidoId = orderResult.insertId;
 
@@ -93,7 +96,65 @@ exports.createPedido = async (req, res) => {
     } catch (error) {
         await connection.rollback();
         console.error(error);
-        res.status(500).json({ message: 'Error al crear el pedido', error: error.message });
+        res.status(500).json({ message: `Error al crear el pedido: ${error.message}` });
+    } finally {
+        connection.release();
+    }
+};
+
+// Update order
+exports.updatePedido = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { id } = req.params;
+        const {
+            fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio,
+            requiere_envio, direccion_envio, notas, metodo_pago, productos, estado
+        } = req.body;
+
+        const cleanFechaLimite = fecha_limite === '' ? null : fecha_limite;
+
+        // 1. Update main order
+        await connection.query(
+            `UPDATE PEDIDOS SET 
+                fecha_pedido = ?, fecha_limite = ?, id_cliente = ?, id_canal = ?, 
+                costo_envio = ?, requiere_envio = ?, direccion_envio = ?, 
+                notas = ?, metodo_pago = ?, estado = ?
+             WHERE id_pedido = ?`,
+            [fecha_pedido, cleanFechaLimite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago || 'No especificado', estado || 'borrador', id]
+        );
+
+        // 2. Remove old details
+        await connection.query('DELETE FROM DETALLE_PEDIDOS WHERE id_pedido = ?', [id]);
+
+        // 3. Add new details and calculate subtotal
+        let subtotal = 0;
+        for (const item of productos) {
+            const [prodRows] = await connection.query('SELECT precio FROM PRODUCTOS WHERE id_producto = ?', [item.id_producto]);
+            if (prodRows.length === 0) throw new Error(`Producto ${item.id_producto} no encontrado`);
+
+            const precio = prodRows[0].precio;
+            const itemSubtotal = precio * item.cantidad;
+            subtotal += itemSubtotal;
+
+            await connection.query(
+                'INSERT INTO DETALLE_PEDIDOS (id_pedido, id_producto, cantidad, precio_unitario) VALUES (?, ?, ?, ?)',
+                [id, item.id_producto, item.cantidad, precio]
+            );
+        }
+
+        // 4. Update subtotal
+        await connection.query('UPDATE PEDIDOS SET subtotal = ? WHERE id_pedido = ?', [subtotal, id]);
+
+        await connection.commit();
+        res.json({ message: 'Pedido actualizado exitosamente' });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error(error);
+        res.status(500).json({ message: `Error al actualizar el pedido: ${error.message}` });
     } finally {
         connection.release();
     }

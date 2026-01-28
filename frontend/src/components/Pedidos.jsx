@@ -4,7 +4,7 @@ import { getPedidos, getPedidoById, updateEstadoPedido } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import Modal from './ui/modal';
-import { Clock, CheckCircle, XCircle, Truck, Plus, Eye, User, MapPin, Phone, Calendar, DollarSign, CreditCard } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Truck, Plus, Eye, User, MapPin, Phone, Calendar, DollarSign, CreditCard, Edit2 } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 
 const Pedidos = () => {
@@ -53,6 +53,7 @@ const Pedidos = () => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'pendiente': return 'text-amber-600 bg-amber-50 border-amber-100';
+            case 'borrador': return 'text-slate-500 bg-slate-50 border-slate-200 dashed-border';
             case 'completado': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
             case 'cancelado': return 'text-rose-600 bg-rose-50 border-rose-100';
             default: return 'text-slate-600 bg-slate-50 border-slate-100';
@@ -126,6 +127,32 @@ const Pedidos = () => {
                                     <Button variant="ghost" size="sm" onClick={() => handleViewDetails(pedido.id_pedido)}>
                                         <Eye className="h-4 w-4 mr-2" /> Ver Detalles
                                     </Button>
+
+                                    {pedido.estado === 'borrador' && (
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-gray-200 dark:border-gray-700"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/pedidos/editar/${pedido.id_pedido}`);
+                                                }}
+                                            >
+                                                <Edit2 className="h-4 w-4 mr-2" /> Editar
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="bg-rosa-primario hover:bg-rosa-oscuro text-white"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleStatusChange(pedido.id_pedido, 'pendiente');
+                                                }}
+                                            >
+                                                <CheckCircle className="h-4 w-4 mr-2" /> Activar
+                                            </Button>
+                                        </div>
+                                    )}
 
                                     {pedido.estado === 'pendiente' && (
                                         <div className="flex gap-2 border-l pl-2 ml-2">
