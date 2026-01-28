@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProductos, getClientes, getCanales, createPedido, createCliente, createProducto, getCategorias } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -34,6 +34,22 @@ const NuevoPedido = () => {
     const [selectedProduct, setSelectedProduct] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [diasRestantes, setDiasRestantes] = useState(null);
+
+    // Cliente Search States
+    const [searchTermClientes, setSearchTermClientes] = useState('');
+    const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+    const clientSearchRef = useRef(null);
+
+    // Handle click outside for client dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (clientSearchRef.current && !clientSearchRef.current.contains(event.target)) {
+                setIsClientDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Quick Client Creation States
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -245,12 +261,53 @@ const NuevoPedido = () => {
                                         <Plus className="h-2 w-2" /> Nuevo
                                     </button>
                                 </Label>
-                                <Select name="id_cliente" value={formData.id_cliente} onChange={handleInputChange} required>
+                                <Select name="id_cliente" value={formData.id_cliente} onChange={handleInputChange} className="hidden" required>
                                     <option value="">Seleccionar Cliente...</option>
                                     {clientes.map(c => (
                                         <option key={c.id_cliente} value={c.id_cliente}>{c.nombre_cliente}</option>
                                     ))}
                                 </Select>
+
+                                <div className="relative mt-1" ref={clientSearchRef}>
+                                    <Input
+                                        placeholder="Buscar cliente..."
+                                        value={searchTermClientes || (clientes.find(c => c.id_cliente === parseInt(formData.id_cliente))?.nombre_cliente || '')}
+                                        onChange={(e) => {
+                                            setSearchTermClientes(e.target.value);
+                                            setIsClientDropdownOpen(true);
+                                            if (e.target.value === '') {
+                                                setFormData(prev => ({ ...prev, id_cliente: '' }));
+                                            }
+                                        }}
+                                        onFocus={() => setIsClientDropdownOpen(true)}
+                                    />
+                                    {isClientDropdownOpen && (
+                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border-2 border-rosa-primario/30 rounded-xl shadow-xl max-h-60 overflow-y-auto backdrop-blur-md">
+                                            {clientes
+                                                .filter(c =>
+                                                    !searchTermClientes ||
+                                                    c.nombre_cliente.toLowerCase().includes(searchTermClientes.toLowerCase())
+                                                )
+                                                .slice(0, searchTermClientes ? undefined : 5)
+                                                .map(c => (
+                                                    <div
+                                                        key={c.id_cliente}
+                                                        className="px-4 py-2 hover:bg-rosa-primario/20 cursor-pointer text-sm text-gray-900 dark:text-gray-100 transition-colors"
+                                                        onClick={() => {
+                                                            handleInputChange({ target: { name: 'id_cliente', value: c.id_cliente.toString() } });
+                                                            setSearchTermClientes('');
+                                                            setIsClientDropdownOpen(false);
+                                                        }}
+                                                    >
+                                                        {c.nombre_cliente}
+                                                    </div>
+                                                ))}
+                                            {clientes.filter(c => !searchTermClientes || c.nombre_cliente.toLowerCase().includes(searchTermClientes.toLowerCase())).length === 0 && (
+                                                <div className="px-4 py-2 text-sm text-gray-500 italic">No se encontraron clientes</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <Label>Canal de Venta</Label>
