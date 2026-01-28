@@ -12,23 +12,31 @@ body {
 
 @layer utilities {
   .glass {
-    @apply bg-white/80 backdrop-blur-xl border border-white/30 shadow-xl;
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
   }
 
   .glass-dark {
-    @apply dark:bg-white/10 dark:backdrop-blur-2xl dark:border-white/20 dark:shadow-2xl dark:shadow-pink-500/10;
+    @apply dark:bg-slate-900/60 dark:backdrop-blur-2xl dark:border-white/10 dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
   }
 
   .glass-card {
-    @apply bg-white/90 backdrop-blur-xl border border-white/50 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1;
+    @apply bg-white/80 backdrop-blur-md border border-white/50 shadow-sm hover:shadow-2xl hover:shadow-rosa-primario/10 transition-all duration-500 hover:-translate-y-1;
   }
 
   .glass-card-dark {
-    @apply dark:bg-white/10 dark:backdrop-blur-2xl dark:border-white/20 dark:hover:bg-white/15 dark:hover:border-pink-400/30 dark:shadow-xl dark:shadow-pink-500/10;
+    @apply dark:bg-gray-900/40 dark:backdrop-blur-xl dark:border-white/5 dark:hover:bg-gray-900/60 dark:hover:border-rosa-primario/20 dark:shadow-2xl dark:shadow-black/20;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-rosa-secundario to-rosa-oscuro dark:from-rosa-primario dark:to-purple-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-rosa-secundario via-rosa-oscuro to-purple-700 dark:from-rosa-primario dark:via-rosa-secundario dark:to-purple-400;
+  }
+
+  .premium-shadow {
+    @apply shadow-[0_20px_50px_rgba(236,72,153,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)];
+  }
+
+  .glow-rosa {
+    @apply shadow-[0_0_20px_rgba(236,72,153,0.3)] dark:shadow-[0_0_30px_rgba(236,72,153,0.15)];
   }
 }
 

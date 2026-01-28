@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { getVentasMensuales } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { formatCurrency } from '../lib/utils';
-import { Calendar, DollarSign, CreditCard, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { formatCurrency, cn } from '../lib/utils';
+import { Calendar, DollarSign, CreditCard, ChevronLeft, ChevronRight, FileText, TrendingUp, ShoppingBag, PieChart, Sparkles } from 'lucide-react';
 
 const ResumenVentas = () => {
     const [loading, setLoading] = useState(true);
@@ -16,7 +16,7 @@ const ResumenVentas = () => {
             const mes = (currentDate.getMonth() + 1).toString().padStart(2, '0');
             const anio = currentDate.getFullYear().toString();
             const result = await getVentasMensuales(mes, anio);
-            setData(result);
+            setData(result || { resumen: [], pedidos: [], meta: {} });
         } catch (error) {
             console.error("Error loading monthly sales", error);
         } finally {
@@ -39,132 +39,198 @@ const ResumenVentas = () => {
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ];
 
-    const totalVentas = data.resumen.reduce((sum, item) => sum + parseFloat(item.total_monto), 0);
+    const totalVentas = (data.resumen || []).reduce((sum, item) => sum + parseFloat(item.total_monto || 0), 0);
 
     return (
-        <div className="space-y-8">
-            {/* Header & Month Selector */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
-                <h1 className="text-3xl font-bold text-rosa-oscuro dark:text-white flex items-center gap-3">
-                    <Calendar className="h-8 w-8" />
-                    Resumen de Ventas 📊
-                </h1>
+        <div className="space-y-10 pb-12 animate-in fade-in duration-700">
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-2">
+                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white flex items-center gap-4">
+                        <span className="p-3 rounded-2xl bg-rosa-primario/20 text-rosa-oscuro dark:text-rosa-primario">
+                            <TrendingUp className="h-8 w-8" />
+                        </span>
+                        Análisis de <span className="text-gradient">Ventas</span> 📊
+                    </h1>
+                    <p className="text-slate-500 dark:text-gray-400 font-medium">Visualiza el crecimiento y rendimiento de MiniStore</p>
+                </div>
 
-                <div className="flex items-center gap-4 bg-white/70 dark:bg-dark-surface/50 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-sm">
-                    <Button variant="ghost" size="icon" onClick={() => changeMonth(-1)} className="rounded-xl">
+                <div className="flex items-center gap-2 bg-white/50 dark:bg-white/5 backdrop-blur-xl p-2 rounded-2xl border border-white/20 shadow-xl overflow-hidden">
+                    <button
+                        onClick={() => changeMonth(-1)}
+                        className="p-3 hover:bg-rosa-primario/10 text-slate-400 hover:text-rosa-oscuro transition-all rounded-xl"
+                    >
                         <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                    <span className="font-bold text-lg min-w-[140px] text-center text-gray-800 dark:text-gray-100">
-                        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => changeMonth(1)} className="rounded-xl">
+                    </button>
+                    <div className="px-6 py-2 text-center min-w-[180px]">
+                        <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-rosa-oscuro dark:text-rosa-primario leading-none mb-1">Periodo Seleccionado</span>
+                        <span className="text-lg font-black text-slate-800 dark:text-white">
+                            {monthNames[currentDate.getMonth()].toUpperCase()} {currentDate.getFullYear()}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => changeMonth(1)}
+                        className="p-3 hover:bg-rosa-primario/10 text-slate-400 hover:text-rosa-oscuro transition-all rounded-xl"
+                    >
                         <ChevronRight className="h-5 w-5" />
-                    </Button>
+                    </button>
                 </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-                <Card className="bg-white/80 dark:bg-white/10 border border-rosa-primario/20 dark:border-white/10 overflow-hidden relative shadow-xl shadow-rosa-primario/5">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-rosa-primario/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Total Ventas</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-black mb-1 bg-clip-text text-transparent bg-gradient-to-r from-rosa-oscuro to-purple-600 dark:from-rosa-primario dark:to-purple-400">
-                            {formatCurrency(totalVentas)}
+            {/* Core Stats Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                {/* Main Total Card */}
+                <Card className="lg:col-span-12 glass glass-dark border-none premium-shadow overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-rosa-primario/20 via-purple-500/10 to-transparent rounded-full -mr-32 -mt-32 blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+
+                    <CardContent className="p-10 relative">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                            <div className="space-y-6">
+                                <div className="space-y-1">
+                                    <span className="text-xs font-black uppercase tracking-[0.3em] text-rosa-oscuro dark:text-rosa-primario opacity-70">Ingresos Totales del Mes</span>
+                                    <div className="flex items-baseline gap-2">
+                                        <h2 className="text-6xl font-black tracking-tighter text-slate-900 dark:text-white">
+                                            {formatCurrency(totalVentas)}
+                                        </h2>
+                                        <span className="text-lg font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-xl"> +12% </span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-10">
+                                    <div className="space-y-1">
+                                        <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Volumen de Pedidos</span>
+                                        <span className="text-2xl font-black text-slate-700 dark:text-gray-200">{(data.pedidos || []).length}</span>
+                                    </div>
+                                    <div className="space-y-1 border-l border-white/10 pl-10">
+                                        <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Promedio por Venta</span>
+                                        <span className="text-2xl font-black text-slate-700 dark:text-gray-200">
+                                            {formatCurrency(totalVentas / ((data.pedidos || []).length || 1))}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {(data.resumen || []).map((metodo, idx) => (
+                                    <div key={idx} className="p-5 bg-white/40 dark:bg-white/5 rounded-3xl border border-white/20 hover:border-rosa-primario/50 transition-all group/stat">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="p-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 group-hover/stat:scale-110 transition-transform">
+                                                {metodo.metodo_pago === 'Efectivo' ? <DollarSign className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{metodo.cantidad_pedidos} Ops</span>
+                                        </div>
+                                        <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{metodo.metodo_pago}</span>
+                                        <span className="text-lg font-black text-slate-800 dark:text-white">{formatCurrency(metodo.total_monto)}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-300 text-xs font-medium">
-                            {loading ? 'Calculando...' : `${data.pedidos.length} pedidos este mes`}
-                        </p>
                     </CardContent>
                 </Card>
 
-                {data.resumen.map((metodo, idx) => (
-                    <Card key={idx} className="bg-white/70 dark:bg-dark-surface/50 backdrop-blur-md border-none relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-rosa-primario/5 rounded-full -mr-12 -mt-12 group-hover:bg-rosa-primario/10 transition-colors"></div>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider flex items-center gap-2">
-                                {metodo.metodo_pago === 'Efectivo' ? <DollarSign className="h-3 w-3" /> : <CreditCard className="h-3 w-3" />}
-                                {metodo.metodo_pago}
+                {/* Sub Stats - Bottom Layer */}
+                <div className="lg:col-span-12 space-y-8">
+                    <Card className="bg-white dark:bg-dark-surface border-none premium-shadow overflow-hidden">
+                        <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
+                            <CardTitle className="text-xl font-black tracking-tight flex items-center gap-3">
+                                <span className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                                    <ShoppingBag className="h-5 w-5" />
+                                </span>
+                                Bitácora de Operaciones
                             </CardTitle>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Listado Detallado</span>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metodo.total_monto)}</div>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs">{metodo.cantidad_pedidos} transacciones</p>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                        <CardContent className="p-6">
+                            <div className="space-y-3">
+                                <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <div className="col-span-2">Fecha</div>
+                                    <div className="col-span-3">Cliente</div>
+                                    <div className="col-span-3">Composición</div>
+                                    <div className="col-span-2 text-center">Canal</div>
+                                    <div className="col-span-2 text-right">Inversión</div>
+                                </div>
 
-            {/* Detailed Table */}
-            <Card className="border-none bg-white/70 dark:bg-dark-surface/50 backdrop-blur-md overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-                <CardHeader>
-                    <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-rosa-oscuro" />
-                        Detalle de Pedidos
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-rosa-suave/30 dark:bg-white/5 border-b border-gray-100 dark:border-gray-800">
-                                <tr>
-                                    <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200">Fecha</th>
-                                    <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200">Cliente</th>
-                                    <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200">Productos</th>
-                                    <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200 text-center">Pago</th>
-                                    <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200 text-right">Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {loading && data.pedidos.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-rosa-oscuro dark:text-rosa-primario animate-pulse italic">
-                                            Cargando información del mes... ✨
-                                        </td>
-                                    </tr>
-                                ) : data.pedidos.length > 0 ? (
-                                    data.pedidos.map((pedido) => (
-                                        <tr key={pedido.id_pedido} className="hover:bg-rosa-primario/5 dark:hover:bg-white/5 transition-colors">
-                                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                                {new Date(pedido.fecha_pedido).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="font-medium text-gray-900 dark:text-white">{pedido.nombre_cliente}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate" title={pedido.productos_resumen}>
-                                                    {pedido.productos_resumen || 'Sin detalles'}
+                                {loading ? (
+                                    <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                                        <div className="w-10 h-10 border-4 border-rosa-primario/20 border-t-rosa-oscuro rounded-full animate-spin" />
+                                        <span className="text-xs font-black text-rosa-oscuro uppercase tracking-widest animate-pulse">Sincronizando reportes...</span>
+                                    </div>
+                                ) : (data.pedidos || []).length > 0 ? (
+                                    data.pedidos.map((pedido, index) => (
+                                        <div
+                                            key={pedido.id_pedido}
+                                            className={cn(
+                                                "grid grid-cols-12 gap-4 items-center p-4 rounded-2xl border transition-all duration-200 cursor-default group",
+                                                index % 2 === 0
+                                                    ? "bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-rosa-primario/30 dark:hover:border-white/20 hover:shadow-md"
+                                                    : "bg-white dark:bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-white/5 hover:border-rosa-primario/30 dark:hover:border-white/20 hover:shadow-md",
+                                                "hover:scale-[1.005]"
+                                            )}
+                                        >
+                                            <div className="col-span-2">
+                                                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 block">
+                                                    {new Date(pedido.fecha_pedido).toLocaleDateString('es-CO', {
+                                                        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
+                                                    }).toUpperCase()}
+                                                </span>
+                                            </div>
+
+                                            <div className="col-span-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 dark:from-white dark:to-slate-200 text-white dark:text-slate-900 flex items-center justify-center text-sm font-bold shadow-lg shadow-black/20">
+                                                        {pedido.nombre_cliente.charAt(0)}
+                                                    </div>
+                                                    <span className="font-bold text-slate-700 dark:text-gray-200 truncate pr-4">
+                                                        {pedido.nombre_cliente}
+                                                    </span>
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${pedido.metodo_pago === 'Efectivo'
-                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                                    }`}>
+                                            </div>
+
+                                            <div className="col-span-3">
+                                                <p className="text-xs font-medium text-slate-500 dark:text-gray-400 truncate max-w-[200px]" title={pedido.productos_resumen}>
+                                                    {pedido.productos_resumen || 'Detalles no disponibles'}
+                                                </p>
+                                            </div>
+
+                                            <div className="col-span-2 flex justify-center">
+                                                <span className={cn(
+                                                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm",
+                                                    pedido.metodo_pago === 'Efectivo' ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/40 dark:text-emerald-100 dark:border-emerald-400/60" :
+                                                        pedido.metodo_pago === 'Daviplata' ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/40 dark:text-rose-100 dark:border-rose-400/60" :
+                                                            pedido.metodo_pago === 'Nequi' ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/40 dark:text-purple-100 dark:border-purple-400/60" :
+                                                                pedido.metodo_pago === 'Transferencia' ? "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/40 dark:text-yellow-100 dark:border-yellow-400/60" :
+                                                                    "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/40 dark:text-slate-100 dark:border-slate-400/60"
+                                                )}>
                                                     {pedido.metodo_pago}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="font-bold text-gray-900 dark:text-white">
+                                            </div>
+
+                                            <div className="col-span-2 text-right">
+                                                <div className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                                                     {formatCurrency(pedido.total)}
                                                 </div>
-                                            </td>
-                                        </tr>
+                                            </div>
+                                        </div>
                                     ))
                                 ) : (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400 italic">
-                                            No hay ventas registradas en este periodo 🌸
-                                        </td>
-                                    </tr>
+                                    <div className="py-24 text-center flex flex-col items-center justify-center space-y-4 opacity-40">
+                                        <PieChart className="h-12 w-12 text-slate-300" />
+                                        <div className="space-y-1">
+                                            <p className="text-lg font-black text-slate-500">Sin registros este mes</p>
+                                            <p className="text-xs font-medium text-slate-400">Las ventas confirmadas aparecerán aquí automáticamente.</p>
+                                        </div>
+                                    </div>
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-            </Card>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            <div className="flex justify-center pt-6 opacity-30">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                    <Sparkles className="h-3 w-3" /> Reporte Certificado por MiniStore Engine <Sparkles className="h-3 w-3" />
+                </div>
+            </div>
         </div>
     );
 };

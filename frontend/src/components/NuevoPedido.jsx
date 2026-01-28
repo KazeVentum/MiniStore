@@ -7,8 +7,8 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select } from './ui/select';
 import Modal from './ui/modal';
-import { Plus, Trash2, Save, ArrowLeft, UserPlus } from 'lucide-react';
-import { formatCurrency } from '../lib/utils';
+import { Plus, Trash2, Save, ArrowLeft, UserPlus, Clock } from 'lucide-react';
+import { formatCurrency, cn } from '../lib/utils';
 
 const NuevoPedido = () => {
     const navigate = useNavigate();
@@ -166,6 +166,7 @@ const NuevoPedido = () => {
                         notas: pedido.notas || '',
                         metodo_pago: pedido.metodo_pago,
                         estado: pedido.estado,
+                        updated_at: pedido.ultima_edicion, // Map from DB column
                         productos: pedido.detalles.map(d => ({
                             id_producto: d.id_producto,
                             nombre: d.nombre_producto, // Fixed mapping
@@ -280,41 +281,79 @@ const NuevoPedido = () => {
     if (loading) return <div className="p-8 text-rosa-oscuro">Cargando... 💖</div>;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
-            <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" onClick={() => navigate('/pedidos')}>
-                    <ArrowLeft className="h-5 w-5 mr-2" /> Volver
-                </Button>
-                <h1 className="text-2xl font-bold text-rosa-oscuro dark:text-white">Nuevo Pedido 💝</h1>
+        <div className="space-y-8 pb-12 animate-in fade-in duration-700">
+            {/* Header & Back Action */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-2">
+                    <button
+                        onClick={() => navigate('/pedidos')}
+                        className="group flex items-center gap-2 text-slate-500 hover:text-rosa-oscuro dark:text-gray-400 dark:hover:text-rosa-primario transition-colors font-bold text-sm"
+                    >
+                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                        VOLVER A PEDIDOS
+                    </button>
+                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
+                        {isEditMode ? 'Editar' : 'Nuevo'} <span className="text-gradient">Pedido</span> ✨
+                    </h1>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    {isEditMode && (formData.updated_at || formData.ultima_edicion) && (
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Editado el</span>
+                            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                                <Clock className="h-3 w-3" /> {new Date(formData.updated_at || formData.ultima_edicion).toLocaleString('es-CO', {
+                                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                })}
+                            </span>
+                        </div>
+                    )}
+                    <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estado del Pedido</span>
+                        <span className={cn(
+                            "text-xs font-bold px-3 py-0.5 rounded-full border",
+                            formData.estado === 'completado' ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" :
+                                formData.estado === 'pendiente' ? "text-amber-500 bg-amber-500/10 border-amber-500/20" :
+                                    "text-slate-400 bg-slate-400/10 border-slate-400/20"
+                        )}>
+                            {(formData.estado || 'Pendiente').toUpperCase()}
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Left Column: Order Details */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle className="text-gray-900 dark:text-white">Detalles del Pedido</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <Label className="flex justify-between items-center">
-                                    Cliente
+                <div className="lg:col-span-8 space-y-8">
+                    <Card className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-white/5 premium-shadow overflow-visible">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                                <span className="p-2 rounded-xl bg-rosa-primario/20 text-rosa-oscuro dark:text-rosa-primario">
+                                    <UserPlus className="h-5 w-5" />
+                                </span>
+                                Información del Cliente
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400 flex justify-between items-center">
+                                    Cliente Seleccionado
                                     <button
                                         type="button"
                                         onClick={() => setIsClientModalOpen(true)}
-                                        className="text-[10px] bg-rosa-primario/50 text-rosa-oscuro px-2 py-0.5 rounded-full hover:bg-rosa-primario transition-colors flex items-center gap-1"
+                                        className="text-rosa-oscuro dark:text-rosa-primario hover:underline transition-all flex items-center gap-1"
                                     >
-                                        <Plus className="h-2 w-2" /> Nuevo
+                                        <Plus className="h-3 w-3" /> Nuevo Cliente
                                     </button>
                                 </Label>
-                                <Select name="id_cliente" value={formData.id_cliente} onChange={handleInputChange} className="hidden" required>
-                                    <option value="">Seleccionar Cliente...</option>
-                                    {clientes.map(c => (
-                                        <option key={c.id_cliente} value={c.id_cliente}>{c.nombre_cliente}</option>
-                                    ))}
-                                </Select>
 
-                                <div className="relative mt-1" ref={clientSearchRef}>
+                                <div className="relative" ref={clientSearchRef}>
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                        <Plus className="h-4 w-4" />
+                                    </div>
                                     <Input
-                                        placeholder="Buscar cliente..."
+                                        className="pl-11 h-12 bg-white/50 dark:bg-dark-surface/50 border-white/20 rounded-2xl font-bold focus:ring-rosa-primario/30 transition-all"
+                                        placeholder="Buscar o seleccionar cliente..."
                                         value={searchTermClientes || (clientes.find(c => c.id_cliente === parseInt(formData.id_cliente))?.nombre_cliente || '')}
                                         onChange={(e) => {
                                             setSearchTermClientes(e.target.value);
@@ -326,147 +365,243 @@ const NuevoPedido = () => {
                                         onFocus={() => setIsClientDropdownOpen(true)}
                                     />
                                     {isClientDropdownOpen && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border-2 border-rosa-primario/30 rounded-xl shadow-xl max-h-60 overflow-y-auto backdrop-blur-md">
-                                            {clientes
-                                                .filter(c =>
-                                                    !searchTermClientes ||
-                                                    c.nombre_cliente.toLowerCase().includes(searchTermClientes.toLowerCase())
-                                                )
-                                                .slice(0, searchTermClientes ? undefined : 5)
-                                                .map(c => (
-                                                    <div
-                                                        key={c.id_cliente}
-                                                        className="px-4 py-2 hover:bg-rosa-primario/20 cursor-pointer text-sm text-gray-900 dark:text-gray-100 transition-colors"
-                                                        onClick={() => {
-                                                            handleInputChange({ target: { name: 'id_cliente', value: c.id_cliente.toString() } });
-                                                            setSearchTermClientes('');
-                                                            setIsClientDropdownOpen(false);
-                                                        }}
-                                                    >
-                                                        {c.nombre_cliente}
+                                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-dark-surface border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                                            <div className="p-2 space-y-1">
+                                                {clientes
+                                                    .filter(c =>
+                                                        !searchTermClientes ||
+                                                        c.nombre_cliente.toLowerCase().includes(searchTermClientes.toLowerCase())
+                                                    )
+                                                    .slice(0, searchTermClientes ? undefined : 10)
+                                                    .map(c => (
+                                                        <div
+                                                            key={c.id_cliente}
+                                                            className="px-4 py-3 rounded-xl hover:bg-rosa-primario/10 dark:hover:bg-rosa-primario/20 cursor-pointer text-sm font-bold text-slate-700 dark:text-gray-200 transition-all flex items-center justify-between group"
+                                                            onClick={() => {
+                                                                handleInputChange({ target: { name: 'id_cliente', value: c.id_cliente.toString() } });
+                                                                setSearchTermClientes('');
+                                                                setIsClientDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            <span>{c.nombre_cliente}</span>
+                                                            <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">SELECCIONAR</span>
+                                                        </div>
+                                                    ))}
+                                                {clientes.filter(c => !searchTermClientes || c.nombre_cliente.toLowerCase().includes(searchTermClientes.toLowerCase())).length === 0 && (
+                                                    <div className="px-5 py-8 text-center">
+                                                        <p className="text-xs text-slate-500 font-medium mb-2">No se encontraron clientes</p>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setIsClientModalOpen(true);
+                                                                setIsClientDropdownOpen(false);
+                                                            }}
+                                                            className="text-[10px] font-black uppercase text-rosa-oscuro dark:text-rosa-primario hover:underline"
+                                                        >
+                                                            Crear nuevo cliente
+                                                        </button>
                                                     </div>
-                                                ))}
-                                            {clientes.filter(c => !searchTermClientes || c.nombre_cliente.toLowerCase().includes(searchTermClientes.toLowerCase())).length === 0 && (
-                                                <div className="px-4 py-2 text-sm text-gray-500 italic">No se encontraron clientes</div>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            <div>
-                                <Label>Canal de Venta</Label>
-                                <Select name="id_canal" value={formData.id_canal} onChange={handleInputChange} required>
+
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400">Canal de Venta</Label>
+                                <Select
+                                    name="id_canal"
+                                    value={formData.id_canal}
+                                    onChange={handleInputChange}
+                                    className="h-12 bg-white/50 dark:bg-white/5 border-white/20 rounded-2xl font-bold"
+                                    required
+                                >
                                     <option value="">Seleccionar Canal...</option>
                                     {canales.map(c => (
                                         <option key={c.id_canal} value={c.id_canal}>{c.nombre_canal}</option>
                                     ))}
                                 </Select>
                             </div>
-                            <div>
-                                <Label>Fecha del Pedido</Label>
-                                <Input type="date" name="fecha_pedido" value={formData.fecha_pedido} onChange={handleInputChange} required />
+
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400">Fecha del Pedido</Label>
+                                <Input
+                                    type="date"
+                                    name="fecha_pedido"
+                                    value={formData.fecha_pedido}
+                                    onChange={handleInputChange}
+                                    className="h-12 bg-white/50 dark:bg-white/5 border-white/20 rounded-2xl font-bold"
+                                    required
+                                />
                             </div>
-                            <div>
-                                <Label>Fecha Límite</Label>
-                                <Input type="date" name="fecha_limite" value={formData.fecha_limite} onChange={handleInputChange} />
+
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400">Fecha Límite (Opcional)</Label>
+                                <Input
+                                    type="date"
+                                    name="fecha_limite"
+                                    value={formData.fecha_limite}
+                                    onChange={handleInputChange}
+                                    className="h-12 bg-white/50 dark:bg-white/5 border-white/20 rounded-2xl font-bold"
+                                />
                                 {diasRestantes !== null && (
-                                    <p className={`text-sm mt-1 ${diasRestantes < 0 ? 'text-red-500' : diasRestantes < 3 ? 'text-orange-500' : 'text-green-600'}`}>
-                                        {diasRestantes < 0 ? `Vencido hace ${Math.abs(diasRestantes)} días` :
-                                            diasRestantes === 0 ? 'Vence hoy' :
+                                    <div className={cn(
+                                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                        diasRestantes < 0 ? 'bg-rose-500/10 text-rose-500' : diasRestantes < 3 ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+                                    )}>
+                                        {diasRestantes < 0 ? `Vencido (${Math.abs(diasRestantes)}d)` :
+                                            diasRestantes === 0 ? 'Vence Hoy' :
                                                 `${diasRestantes} días restantes`}
-                                    </p>
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-2 mt-6">
-                                <input type="checkbox" id="requiere_envio" name="requiere_envio" checked={formData.requiere_envio} onChange={handleInputChange} className="h-4 w-4 text-rosa-oscuro rounded border-gray-300 focus:ring-rosa-oscuro" />
-                                <Label htmlFor="requiere_envio" className="mb-0">Requiere Envío</Label>
-                            </div>
-                            {formData.requiere_envio && (
-                                <div className="md:col-span-2">
-                                    <Label>Dirección de Envío</Label>
-                                    <Input name="direccion_envio" value={formData.direccion_envio} onChange={handleInputChange} />
+                            <div className="md:col-span-2 space-y-4">
+                                <div className="flex items-center gap-3 p-4 bg-white/30 dark:bg-white/5 rounded-2xl border border-white/20">
+                                    <input
+                                        type="checkbox"
+                                        id="requiere_envio"
+                                        name="requiere_envio"
+                                        checked={formData.requiere_envio}
+                                        onChange={handleInputChange}
+                                        className="h-5 w-5 accent-rosa-secundario rounded-lg"
+                                    />
+                                    <Label htmlFor="requiere_envio" className="mb-0 font-bold cursor-pointer">Este pedido requiere envío a domicilio</Label>
                                 </div>
-                            )}
-                            <div className="md:col-span-2">
-                                <Label>Método de Pago</Label>
-                                <Select name="metodo_pago" value={formData.metodo_pago} onChange={handleInputChange} required>
-                                    <option value="Efectivo">💵 Efectivo</option>
-                                    <option value="Nequi">📱 Nequi</option>
-                                    <option value="Daviplata">📱 Daviplata</option>
-                                    <option value="Transferencia">🏦 Transferencia Bancaria</option>
-                                    <option value="Otro">✨ Otro</option>
-                                </Select>
+
+                                {formData.requiere_envio && (
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400">Dirección de Envío</Label>
+                                        <Input
+                                            name="direccion_envio"
+                                            value={formData.direccion_envio}
+                                            onChange={handleInputChange}
+                                            className="h-12 bg-white/50 dark:bg-white/5 border-white/20 rounded-2xl font-bold"
+                                            placeholder="Calle, Número, Ciudad..."
+                                        />
+                                    </div>
+                                )}
                             </div>
-                            <div className="md:col-span-2">
-                                <Label>Notas</Label>
-                                <Input name="notas" value={formData.notas} onChange={handleInputChange} />
+
+                            <div className="md:col-span-2 space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400">Método de Pago</Label>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                                    {['Efectivo', 'Nequi', 'Daviplata', 'Transferencia', 'Otro'].map((metodo) => (
+                                        <button
+                                            key={metodo}
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, metodo_pago: metodo }))}
+                                            className={cn(
+                                                "py-3 rounded-xl text-xs font-bold transition-all duration-300 border",
+                                                formData.metodo_pago === metodo
+                                                    ? "bg-rosa-secundario text-white border-rosa-secundario shadow-lg shadow-rosa-secundario/20"
+                                                    : "bg-white/50 dark:bg-white/5 text-slate-600 dark:text-gray-400 border-white/20 hover:border-rosa-primario"
+                                            )}
+                                        >
+                                            {metodo}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-2 space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400">Notas Adicionales</Label>
+                                <textarea
+                                    name="notas"
+                                    value={formData.notas}
+                                    onChange={handleInputChange}
+                                    className="w-full min-h-[100px] p-4 bg-white/50 dark:bg-white/5 border border-white/20 rounded-2xl font-medium text-sm focus:ring-2 focus:ring-rosa-primario/50 focus:border-rosa-primario outline-none transition-all placeholder:text-slate-400"
+                                    placeholder="Especificaciones especiales, preferencias del cliente..."
+                                />
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader><CardTitle className="text-gray-900 dark:text-white">Productos</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex gap-2 items-end">
-                                <div className="flex-1">
-                                    <Label className="flex justify-between items-center">
-                                        Producto
+                    <Card className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-white/5 premium-shadow">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                                <span className="p-2 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400">
+                                    <Plus className="h-5 w-5" />
+                                </span>
+                                Selección de Productos
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-6">
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
+                                <div className="flex-1 space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400 flex justify-between items-center">
+                                        Elegir Producto
                                         <button
                                             type="button"
                                             onClick={() => setIsProductModalOpen(true)}
-                                            className="text-[10px] bg-rosa-primario/50 text-rosa-oscuro px-2 py-0.5 rounded-full hover:bg-rosa-primario transition-colors flex items-center gap-1"
+                                            className="text-rosa-oscuro dark:text-rosa-primario hover:underline transition-all flex items-center gap-1"
                                         >
-                                            <Plus className="h-2 w-2" /> Nuevo
+                                            <Plus className="h-3 w-3" /> Nuevo Producto
                                         </button>
                                     </Label>
-                                    <Select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
+                                    <Select
+                                        value={selectedProduct}
+                                        onChange={(e) => setSelectedProduct(e.target.value)}
+                                        className="h-12 bg-white/50 dark:bg-white/5 border-white/20 rounded-2xl font-bold"
+                                    >
                                         <option value="">Agregar producto...</option>
                                         {productos.map(p => (
-                                            <option key={p.id_producto} value={p.id_producto}>{p.nombre_producto} - {formatCurrency(p.precio)}</option>
+                                            <option key={p.id_producto} value={p.id_producto}>{p.nombre_producto} — {formatCurrency(p.precio)}</option>
                                         ))}
                                     </Select>
                                 </div>
-                                <div className="flex-shrink-0">
-                                    <Label>Cantidad</Label>
-                                    <div className="flex items-center border-2 border-white/40 dark:border-white/20 rounded-xl bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
-                                        <button type="button" onClick={decrementQuantity} className="px-3 py-2 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors text-gray-900 dark:text-white">−</button>
+
+                                <div className="w-full md:w-auto space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-gray-400">Cantidad</Label>
+                                    <div className="flex items-center h-12 bg-white/50 dark:bg-white/5 border border-white/20 rounded-2xl overflow-hidden">
+                                        <button type="button" onClick={decrementQuantity} className="px-4 h-full hover:bg-white/30 dark:hover:bg-white/10 transition-colors text-lg font-bold">×</button>
                                         <input
                                             type="number"
                                             min="1"
                                             value={quantity}
                                             onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                                            className="w-16 text-center bg-transparent border-none focus:ring-0 focus:outline-none p-2 text-gray-900 dark:text-white"
+                                            className="w-12 text-center bg-transparent border-none focus:ring-0 font-black"
                                         />
-                                        <button type="button" onClick={incrementQuantity} className="px-3 py-2 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors text-gray-900 dark:text-white">+</button>
+                                        <button type="button" onClick={incrementQuantity} className="px-4 h-full hover:bg-white/30 dark:hover:bg-white/10 transition-colors text-lg font-bold">+</button>
                                     </div>
                                 </div>
-                                <Button type="button" onClick={addProduct} disabled={!selectedProduct}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
+
+                                <button
+                                    type="button"
+                                    onClick={addProduct}
+                                    disabled={!selectedProduct}
+                                    className="h-12 px-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                                >
+                                    <Plus className="h-5 w-5" /> AGREGAR
+                                </button>
                             </div>
 
                             {formData.productos.length > 0 ? (
-                                <div className="border-2 border-white/40 dark:border-white/20 rounded-xl bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
-                                    <table className="w-full">
-                                        <thead className="bg-rosa-suave/50 dark:bg-white/5">
-                                            <tr>
-                                                <th className="text-left px-4 py-3 text-gray-700 dark:text-gray-200 font-semibold">Producto</th>
-                                                <th className="text-center px-4 py-3 text-gray-700 dark:text-gray-200 font-semibold">Cant.</th>
-                                                <th className="text-right px-4 py-3 text-gray-700 dark:text-gray-200 font-semibold">Precio</th>
-                                                <th className="text-right px-4 py-3 text-gray-700 dark:text-gray-200 font-semibold">Total</th>
-                                                <th className="w-12"></th>
+                                <div className="bg-white/30 dark:bg-white/5 rounded-3xl border border-white/20 overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                <th className="text-left px-6 py-4">Producto</th>
+                                                <th className="text-center px-6 py-4">Cant.</th>
+                                                <th className="text-right px-6 py-4">P. Unitario</th>
+                                                <th className="text-right px-6 py-4">Subtotal</th>
+                                                <th className="w-16"></th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-white/5">
                                             {formData.productos.map((item, index) => (
-                                                <tr key={index} className="border-t border-white/20 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/5 transition-colors">
-                                                    <td className="px-4 py-3 text-gray-900 dark:text-white">{item.nombre}</td>
-                                                    <td className="px-4 py-3 text-center text-gray-900 dark:text-white">{item.cantidad}</td>
-                                                    <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{formatCurrency(item.precio)}</td>
-                                                    <td className="px-4 py-3 text-right text-gray-900 dark:text-white font-semibold">{formatCurrency(item.precio * item.cantidad)}</td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <button type="button" onClick={() => removeProduct(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors">
+                                                <tr key={index} className="group hover:bg-white/20 transition-colors">
+                                                    <td className="px-6 py-4 font-bold text-slate-700 dark:text-gray-200">{item.nombre}</td>
+                                                    <td className="px-6 py-4 text-center font-black text-slate-500 dark:text-gray-400 bg-white/5">{item.cantidad}</td>
+                                                    <td className="px-6 py-4 text-right font-medium text-slate-600 dark:text-gray-300">{formatCurrency(item.precio)}</td>
+                                                    <td className="px-6 py-4 text-right font-black text-rosa-oscuro dark:text-rosa-primario">{formatCurrency(item.precio * item.cantidad)}</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeProduct(index)}
+                                                            className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-500/10 rounded-xl transition-all"
+                                                        >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
                                                     </td>
@@ -476,8 +611,14 @@ const NuevoPedido = () => {
                                     </table>
                                 </div>
                             ) : (
-                                <div className="px-4 py-4 text-center text-gray-400 border-2 border-white/40 dark:border-white/20 rounded-xl bg-white/70 dark:bg-gray-900/70 backdrop-blur-md">
-                                    No hay productos agregados
+                                <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 bg-white/20 dark:bg-white/5 rounded-3xl border-2 border-dashed border-white/20">
+                                    <div className="p-4 rounded-full bg-white/50 dark:bg-white/10 text-slate-300">
+                                        <Plus className="h-8 w-8" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="font-bold text-slate-500">¿Qué llevará el cliente?</p>
+                                        <p className="text-xs text-slate-400 font-medium">Agrega productos para comenzar el pedido</p>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
@@ -485,44 +626,85 @@ const NuevoPedido = () => {
                 </div>
 
                 {/* Right Column: Summary */}
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle className="text-gray-900 dark:text-white">Resumen</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-300">Subtotal:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(formData.productos.reduce((sum, item) => sum + (item.precio * item.cantidad), 0))}</span>
+                <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8">
+                    <Card className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-white/5 premium-shadow overflow-hidden">
+                        <div className="h-2 bg-gradient-to-r from-rosa-oscuro via-rosa-primario to-purple-600" />
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xl font-black tracking-tight">Resumen Financiero</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-5">
+                            <div className="flex justify-between items-center group">
+                                <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest">Subtotal Bruto</span>
+                                <span className="font-extrabold text-slate-700 dark:text-gray-200 transition-transform group-hover:scale-110">
+                                    {formatCurrency(formData.productos.reduce((sum, item) => sum + (item.precio * item.cantidad), 0))}
+                                </span>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-600 dark:text-gray-300">Envío:</span>
-                                <Input
-                                    type="number"
-                                    className="w-24 text-right h-8 text-gray-900 dark:text-white"
-                                    value={formData.costo_envio}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, costo_envio: e.target.value }))}
-                                />
+
+                            <div className="flex justify-between items-center px-4 py-3 bg-white/40 dark:bg-white/5 rounded-2xl border border-white/20">
+                                <span className="text-xs font-black text-slate-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Plus className="h-3 w-3" /> Costo de Envío
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-slate-400">$</span>
+                                    <input
+                                        type="number"
+                                        className="w-20 bg-transparent text-right font-black text-slate-900 dark:text-white focus:ring-0 focus:outline-none"
+                                        value={formData.costo_envio}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, costo_envio: e.target.value }))}
+                                    />
+                                </div>
                             </div>
-                            <div className="border-t pt-4 flex justify-between items-center border-gray-200 dark:border-gray-700">
-                                <span className="text-lg font-bold text-gray-900 dark:text-white">Total:</span>
-                                <span className="text-xl font-bold text-rosa-oscuro dark:text-rosa-primario">{formatCurrency(calculateTotal())}</span>
+
+                            <div className="pt-4 border-t border-white/10">
+                                <div className="flex justify-between items-end mb-6">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-rosa-oscuro dark:text-rosa-primario">Total a Pagar</span>
+                                        <span className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">
+                                            {formatCurrency(calculateTotal())}
+                                        </span>
+                                    </div>
+                                    <div className="text-[10px] font-black text-slate-400 text-right">
+                                        COP — IVA Inc.
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <button
+                                        type="submit"
+                                        className="w-full py-4 bg-rosa-secundario hover:bg-rosa-oscuro text-white font-black rounded-2xl shadow-xl shadow-rosa-secundario/20 transition-all duration-300 hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        <Save className="h-5 w-5" />
+                                        {isEditMode ? 'GUARDAR CAMBIOS' : 'CONFIRMAR PEDIDO'}
+                                    </button>
+
+                                    {!isEditMode && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handleSubmit(e, 'borrador')}
+                                            className="w-full py-4 bg-white/50 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 text-slate-700 dark:text-white font-bold rounded-2xl border border-white/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Plus className="h-5 w-5" /> GUARDAR COMO BORRADOR
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="pt-2 space-y-2">
-                                <Button
-                                    type="button"
-                                    onClick={(e) => handleSubmit(e, 'borrador')}
-                                    variant="outline"
-                                    className="w-full border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400"
-                                >
-                                    <Plus className="mr-2 h-4 w-4" /> Guardar Borrador
-                                </Button>
-                                <Button type="submit" className="w-full bg-rosa-oscuro hover:bg-rosa-primario">
-                                    <Save className="mr-2 h-4 w-4" /> {isEditMode ? 'Guardar Cambios' : 'Crear Pedido'}
-                                </Button>
+
+                            <div className="pt-4 flex items-center justify-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Sistema de Seguridad Activo
                             </div>
                         </CardContent>
                     </Card>
+
+                    <div className="p-6 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-3xl border border-indigo-500/20 text-center space-y-2">
+                        <p className="text-xs font-bold text-indigo-400">TIP PREMIUM ✨</p>
+                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                            Los pedidos guardados como <span className="font-bold">Borrador</span> no afectan el stock de productos hasta que sean confirmados.
+                        </p>
+                    </div>
                 </div>
             </form>
+
             {/* Quick Client Modal */}
             <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title="Registro Rápido de Cliente ✨">
                 <form onSubmit={handleClientSubmit} className="space-y-4">
