@@ -1,3 +1,0 @@
-@echo off
-echo 🚀 Iniciando MiniStore...
-npm start
