@@ -29,3 +29,13 @@ Cada vez que quieras usar la app:
 -   Si necesitas cerrar la app, simplemente en el apartado donde estaban los simbolos azules de play, da click en "Stop" y cierra Docker.
 
 ¡Disfruta tu MiniStore! 💖
+
+---
+
+### Registro de Cambios
+
+#### [1.9.1] - 2026-01-28
+-   **UI Renovada:** Transformación del listado de pedidos a un diseño moderno de lista de tarjetas.
+-   **Mejora Visual:** Implementación de "zebra striping" y efectos hover para mejor legibilidad.
+-   **Accesibilidad:** Corrección de colores en badges para garantizar lectura óptima en modo claro y oscuro.
+-   **Correcciones:** Eliminación de glitch de línea vertical y artefactos visuales en formularios.
