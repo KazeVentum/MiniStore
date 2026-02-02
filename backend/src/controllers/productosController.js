@@ -1,41 +1,54 @@
-const db = require('../config/database');
+const supabase = require('../config/database');
 
 // Get all products with optional category filter
 exports.getProductos = async (req, res) => {
     try {
         const { categoria } = req.query;
-        let query = `
-            SELECT p.*, c.nombre_categoria 
-            FROM PRODUCTOS p 
-            JOIN CATEGORIAS c ON p.id_categoria = c.id_categoria
-            WHERE p.activo = TRUE
-        `;
-        const params = [];
+
+        // Build query
+        let query = supabase
+            .from('productos')
+            .select('*, categorias(nombre_categoria)')
+            .eq('activo', true)
+            .order('nombre_producto', { ascending: true });
 
         if (categoria) {
-            query += ' AND p.id_categoria = ?';
-            params.push(categoria);
+            query = query.eq('id_categoria', categoria);
         }
 
-        query += ' ORDER BY p.nombre_producto ASC';
+        const { data, error } = await query;
 
-        const [rows] = await db.query(query, params);
-        res.json(rows);
+        if (error) throw error;
+
+        // Flatten the structure if needed to match previous response format
+        const formattedData = data.map(product => ({
+            ...product,
+            nombre_categoria: product.categorias?.nombre_categoria
+        }));
+
+        res.json(formattedData);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener productos' });
+        res.status(500).json({ message: 'Error al obtener productos', error: error.message });
     }
 };
 
 // Get single product
 exports.getProductoById = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM PRODUCTOS WHERE id_producto = ?', [req.params.id]);
-        if (rows.length === 0) return res.status(404).json({ message: 'Producto no encontrado' });
-        res.json(rows[0]);
+        const { data, error } = await supabase
+            .from('productos')
+            .select('*')
+            .eq('id_producto', req.params.id)
+            .single();
+
+        if (error) throw error;
+        if (!data) return res.status(404).json({ message: 'Producto no encontrado' });
+
+        res.json(data);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener el producto' });
+        res.status(500).json({ message: 'Error al obtener el producto', error: error.message });
     }
 };
 
@@ -43,14 +56,24 @@ exports.getProductoById = async (req, res) => {
 exports.createProducto = async (req, res) => {
     try {
         const { nombre_producto, descripcion, precio, tamano, imagen_url, id_categoria } = req.body;
-        const [result] = await db.query(
-            'INSERT INTO PRODUCTOS (nombre_producto, descripcion, precio, tamano, imagen_url, id_categoria) VALUES (?, ?, ?, ?, ?, ?)',
-            [nombre_producto, descripcion, precio, tamano, imagen_url, id_categoria]
-        );
-        res.status(201).json({ id: result.insertId, ...req.body });
+
+        const { data, error } = await supabase
+            .from('productos')
+            .insert([{
+                nombre_producto,
+                descripcion,
+                precio,
+                tamano,
+                imagen_url,
+                id_categoria
+            }])
+            .select();
+
+        if (error) throw error;
+        res.status(201).json(data[0]);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al crear el producto' });
+        res.status(500).json({ message: 'Error al crear el producto', error: error.message });
     }
 };
 
@@ -58,24 +81,39 @@ exports.createProducto = async (req, res) => {
 exports.updateProducto = async (req, res) => {
     try {
         const { nombre_producto, descripcion, precio, tamano, imagen_url, id_categoria } = req.body;
-        await db.query(
-            'UPDATE PRODUCTOS SET nombre_producto = ?, descripcion = ?, precio = ?, tamano = ?, imagen_url = ?, id_categoria = ? WHERE id_producto = ?',
-            [nombre_producto, descripcion, precio, tamano, imagen_url, id_categoria, req.params.id]
-        );
+
+        const { error } = await supabase
+            .from('productos')
+            .update({
+                nombre_producto,
+                descripcion,
+                precio,
+                tamano,
+                imagen_url,
+                id_categoria
+            })
+            .eq('id_producto', req.params.id);
+
+        if (error) throw error;
         res.json({ message: 'Producto actualizado' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al actualizar el producto' });
+        res.status(500).json({ message: 'Error al actualizar el producto', error: error.message });
     }
 };
 
 // Delete product (soft delete)
 exports.deleteProducto = async (req, res) => {
     try {
-        await db.query('UPDATE PRODUCTOS SET activo = FALSE WHERE id_producto = ?', [req.params.id]);
+        const { error } = await supabase
+            .from('productos')
+            .update({ activo: false })
+            .eq('id_producto', req.params.id);
+
+        if (error) throw error;
         res.json({ message: 'Producto eliminado' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al eliminar el producto' });
+        res.status(500).json({ message: 'Error al eliminar el producto', error: error.message });
     }
 };

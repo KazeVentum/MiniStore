@@ -86,8 +86,8 @@ const AppContent = () => {
                     <div className="p-6 mt-auto">
                         <div className="bg-white/40 dark:bg-white/5 p-4 rounded-2xl border border-white/40 dark:border-white/5 flex items-center justify-between shadow-sm">
                             <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Versión- updated 28/01/26</span>
-                                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">1.9.1</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Versión- updated 02/02/26</span>
+                                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">2.0.0</span>
                             </div>
                             <ThemeToggle />
                         </div>

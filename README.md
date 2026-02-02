@@ -2,25 +2,29 @@
 
 ¡Hola! Bienvenida a tu aplicación MiniStore. Aquí tienes una guía súper rápida para empezar.
 
-## 🚀 Cómo empezar (Solo la primera vez)
+## 🚀 Cómo empezar
 
-1.  Abre Docker Desktop.
-2.  Entra a una ventana de terminal / CMD.
-3.  Navega hasta la carpeta del proyecto. (Usa comandos como ls o cd para navegar)
-4.  Escribe el comando `docker-compose up --build`.
-5.  Espera a que los archivos y todo lo necesario cargue.
-
-¡Listo! Ya tienes todo instalado.
+1.  Asegúrate de tener **Docker Desktop** instalado y un archivo `.env` en la raíz con tus credenciales de Supabase:
+    ```env
+    SUPABASE_URL=https://tu-proyecto.supabase.co
+    SUPABASE_APIKEY=tu-anon-public-key-ey...
+    ```
+2.  Abre una terminal en la carpeta del proyecto.
+3.  Ejecuta:
+    ```bash
+    docker-compose up -d --build
+    ```
+4.  Espera a que los contenedores inicien.
 
 ## 💎 Cómo abrir la app (Día a día)
 
-Cada vez que quieras usar la app:
+1.  **Frontend (Tu App):** http://localhost:5173
+2.  **Backend API:** http://localhost:3000
 
-1.  Abre `Docker Desktop.`
-2.  Encuentra "busuteria-app" en la lista de contenedores.
-3.  Dale **clic** al simbolo azul de play.
-4.  Ve a tu navegador a la URL `http://localhost/ministore`.
-5.  ¡Listo! Ahora puedes usar la app.
+Si necesitas detenerla:
+```bash
+docker-compose stop
+```
 
 ---
 
@@ -33,6 +37,11 @@ Cada vez que quieras usar la app:
 ---
 
 ### Registro de Cambios
+
+#### [2.0.0] - 2026-02-02
+-   **Migración a Supabase:** Cambio total de MySQL local a base de datos en PostgreSQL nube (Supabase).
+-   **Dockerización Pro:** Configuración de contenedores ligera (Frontend + Backend) sin base de datos local obligatoria.
+-   **Scripts de Soporte:** Creación de scripts automáticos para exportar datos de versiones antiguas.
 
 #### [1.9.1] - 2026-01-28
 -   **UI Renovada:** Transformación del listado de pedidos a un diseño moderno de lista de tarjetas.

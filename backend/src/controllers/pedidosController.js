@@ -1,113 +1,139 @@
-const db = require('../config/database');
+const supabase = require('../config/database');
 
 // Get all orders
 exports.getPedidos = async (req, res) => {
     try {
-        const [rows] = await db.query(`
-            SELECT p.*, p.fecha_limite, c.nombre_cliente, cv.nombre_canal 
-            FROM PEDIDOS p
-            JOIN CLIENTES c ON p.id_cliente = c.id_cliente
-            JOIN CANALES_VENTA cv ON p.id_canal = cv.id_canal
-            ORDER BY p.id_pedido DESC
-        `);
-        res.json(rows);
+        const { data, error } = await supabase
+            .from('pedidos')
+            .select(`
+                *,
+                clientes (nombre_cliente),
+                canales_venta (nombre_canal)
+            `)
+            .order('id_pedido', { ascending: false });
+
+        if (error) throw error;
+
+        // Flatten data for frontend compatibility
+        const formattedData = data.map(p => ({
+            ...p,
+            nombre_cliente: p.clientes?.nombre_cliente,
+            nombre_canal: p.canales_venta?.nombre_canal
+        }));
+
+        res.json(formattedData);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener pedidos' });
+        res.status(500).json({ message: 'Error al obtener pedidos', error: error.message });
     }
 };
 
 // Get order by ID with details
 exports.getPedidoById = async (req, res) => {
     try {
-        const [orderRows] = await db.query(`
-            SELECT p.*, p.fecha_limite, c.nombre_cliente, c.telefono, c.direccion, cv.nombre_canal 
-            FROM PEDIDOS p
-            JOIN CLIENTES c ON p.id_cliente = c.id_cliente
-            JOIN CANALES_VENTA cv ON p.id_canal = cv.id_canal
-            WHERE p.id_pedido = ?
-        `, [req.params.id]);
+        const { data, error } = await supabase
+            .from('pedidos')
+            .select(`
+                *,
+                clientes (*),
+                canales_venta (nombre_canal),
+                detalle_pedidos (
+                    *,
+                    productos (nombre_producto)
+                )
+            `)
+            .eq('id_pedido', req.params.id)
+            .single();
 
-        if (orderRows.length === 0) return res.status(404).json({ message: 'Pedido no encontrado' });
+        if (error) throw error;
+        if (!data) return res.status(404).json({ message: 'Pedido no encontrado' });
 
-        const [detailsRows] = await db.query(`
-            SELECT dp.*, pr.nombre_producto 
-            FROM DETALLE_PEDIDOS dp
-            JOIN PRODUCTOS pr ON dp.id_producto = pr.id_producto
-            WHERE dp.id_pedido = ?
-        `, [req.params.id]);
+        // Format details structure
+        const formattedData = {
+            ...data,
+            nombre_cliente: data.clientes?.nombre_cliente,
+            telefono: data.clientes?.telefono,
+            direccion: data.clientes?.direccion,
+            nombre_canal: data.canales_venta?.nombre_canal,
+            detalles: data.detalle_pedidos.map(d => ({
+                ...d,
+                nombre_producto: d.productos?.nombre_producto
+            }))
+        };
+        // Remove nested objects that were flattened
+        delete formattedData.clientes;
+        delete formattedData.canales_venta;
+        delete formattedData.detalle_pedidos;
 
-        const order = orderRows[0];
-        order.detalles = detailsRows;
+        // Add details back in correct property name expected by frontend
+        formattedData.detalles = data.detalle_pedidos.map(d => ({
+            ...d,
+            nombre_producto: d.productos?.nombre_producto
+        }));
 
-        res.json(order);
+        res.json(formattedData);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener el pedido' });
+        res.status(500).json({ message: 'Error al obtener el pedido', error: error.message });
     }
 };
 
 // Create new order
 exports.createPedido = async (req, res) => {
-    const connection = await db.getConnection();
     try {
-        await connection.beginTransaction();
-
         const {
             fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio,
             requiere_envio, direccion_envio, notas, metodo_pago, productos, estado
         } = req.body;
 
-        // Convert empty strings to null for optional dates
-        const cleanFechaLimite = fecha_limite === '' ? null : fecha_limite;
+        // 1. Call RPC to create order header
+        const { data: pedidoId, error: createError } = await supabase
+            .rpc('sp_crear_pedido', {
+                p_fecha_pedido: fecha_pedido,
+                p_id_cliente: id_cliente,
+                p_id_canal: id_canal,
+                p_costo_envio: costo_envio || 0,
+                p_requiere_envio: requiere_envio || false,
+                p_direccion_envio: direccion_envio || '',
+                p_notas: notas || ''
+            });
 
-        // 1. Create Order
-        const [orderResult] = await connection.query(
-            'INSERT INTO PEDIDOS (fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [fecha_pedido, cleanFechaLimite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago || 'No especificado', estado || 'pendiente']
-        );
-        const pedidoId = orderResult.insertId;
+        if (createError) throw createError;
 
-        // 2. Add Details
-        let subtotal = 0;
+        // Update payment method and status which were not in the basic procedure
+        // Or we could have updated the procedure. For now, separate update.
+        await supabase
+            .from('pedidos')
+            .update({
+                metodo_pago: metodo_pago || 'No especificado',
+                estado: estado || 'pendiente',
+                fecha_limite: fecha_limite === '' ? null : fecha_limite
+            })
+            .eq('id_pedido', pedidoId);
+
+        // 2. Add Details using RPC or Insert
+        // Using sp_agregar_producto_pedido is safer as it handles prices and subtotal
         for (const item of productos) {
-            const [prodRows] = await connection.query('SELECT precio FROM PRODUCTOS WHERE id_producto = ?', [item.id_producto]);
-            if (prodRows.length === 0) throw new Error(`Producto ${item.id_producto} no encontrado`);
-
-            const precio = prodRows[0].precio;
-            const itemSubtotal = precio * item.cantidad;
-            subtotal += itemSubtotal;
-
-            await connection.query(
-                'INSERT INTO DETALLE_PEDIDOS (id_pedido, id_producto, cantidad, precio_unitario) VALUES (?, ?, ?, ?)',
-                [pedidoId, item.id_producto, item.cantidad, precio]
-            );
+            const { error: itemError } = await supabase
+                .rpc('sp_agregar_producto_pedido', {
+                    p_id_pedido: pedidoId,
+                    p_id_producto: item.id_producto,
+                    p_cantidad: item.cantidad
+                });
+            if (itemError) console.error('Error adding item:', itemError);
         }
 
-        // 3. Update Subtotal (Trigger/Generated column might handle this, but let's be safe if logic changes)
-        // Actually, the table has a generated column for total, but subtotal is a regular column we need to set?
-        // Checking schema: subtotal DECIMAL(10,2) NOT NULL DEFAULT 0
-        // So we should update it.
-        await connection.query('UPDATE PEDIDOS SET subtotal = ? WHERE id_pedido = ?', [subtotal, pedidoId]);
-
-        await connection.commit();
         res.status(201).json({ message: 'Pedido creado exitosamente', id_pedido: pedidoId });
 
     } catch (error) {
-        await connection.rollback();
         console.error(error);
         res.status(500).json({ message: `Error al crear el pedido: ${error.message}` });
-    } finally {
-        connection.release();
     }
 };
 
 // Update order
 exports.updatePedido = async (req, res) => {
-    const connection = await db.getConnection();
     try {
-        await connection.beginTransaction();
-
         const { id } = req.params;
         const {
             fecha_pedido, fecha_limite, id_cliente, id_canal, costo_envio,
@@ -117,46 +143,45 @@ exports.updatePedido = async (req, res) => {
         const cleanFechaLimite = fecha_limite === '' ? null : fecha_limite;
 
         // 1. Update main order
-        await connection.query(
-            `UPDATE PEDIDOS SET 
-                fecha_pedido = ?, fecha_limite = ?, id_cliente = ?, id_canal = ?, 
-                costo_envio = ?, requiere_envio = ?, direccion_envio = ?, 
-                notas = ?, metodo_pago = ?, estado = ?, ultima_edicion = NOW()
-             WHERE id_pedido = ?`,
-            [fecha_pedido, cleanFechaLimite, id_cliente, id_canal, costo_envio, requiere_envio, direccion_envio, notas, metodo_pago || 'No especificado', estado || 'borrador', id]
-        );
+        const { error: updateError } = await supabase
+            .from('pedidos')
+            .update({
+                fecha_pedido,
+                fecha_limite: cleanFechaLimite,
+                id_cliente,
+                id_canal,
+                costo_envio,
+                requiere_envio,
+                direccion_envio,
+                notas,
+                metodo_pago: metodo_pago || 'No especificado',
+                estado: estado || 'borrador',
+                fecha_actualizacion: new Date()
+            })
+            .eq('id_pedido', id);
+
+        if (updateError) throw updateError;
 
         // 2. Remove old details
-        await connection.query('DELETE FROM DETALLE_PEDIDOS WHERE id_pedido = ?', [id]);
+        await supabase.from('detalle_pedidos').delete().eq('id_pedido', id);
 
-        // 3. Add new details and calculate subtotal
-        let subtotal = 0;
+        // 3. Add new details
+        // We can reuse the RPC loop or do a bulk insert. 
+        // Using RPC ensures prices are fetched from products table and totals updated.
         for (const item of productos) {
-            const [prodRows] = await connection.query('SELECT precio FROM PRODUCTOS WHERE id_producto = ?', [item.id_producto]);
-            if (prodRows.length === 0) throw new Error(`Producto ${item.id_producto} no encontrado`);
-
-            const precio = prodRows[0].precio;
-            const itemSubtotal = precio * item.cantidad;
-            subtotal += itemSubtotal;
-
-            await connection.query(
-                'INSERT INTO DETALLE_PEDIDOS (id_pedido, id_producto, cantidad, precio_unitario) VALUES (?, ?, ?, ?)',
-                [id, item.id_producto, item.cantidad, precio]
-            );
+            await supabase
+                .rpc('sp_agregar_producto_pedido', {
+                    p_id_pedido: parseInt(id),
+                    p_id_producto: item.id_producto,
+                    p_cantidad: item.cantidad
+                });
         }
 
-        // 4. Update subtotal
-        await connection.query('UPDATE PEDIDOS SET subtotal = ? WHERE id_pedido = ?', [subtotal, id]);
-
-        await connection.commit();
         res.json({ message: 'Pedido actualizado exitosamente' });
 
     } catch (error) {
-        await connection.rollback();
         console.error(error);
         res.status(500).json({ message: `Error al actualizar el pedido: ${error.message}` });
-    } finally {
-        connection.release();
     }
 };
 
@@ -164,10 +189,15 @@ exports.updatePedido = async (req, res) => {
 exports.updateEstadoPedido = async (req, res) => {
     try {
         const { estado } = req.body;
-        await db.query('UPDATE PEDIDOS SET estado = ? WHERE id_pedido = ?', [estado, req.params.id]);
+        const { error } = await supabase
+            .from('pedidos')
+            .update({ estado })
+            .eq('id_pedido', req.params.id);
+
+        if (error) throw error;
         res.json({ message: 'Estado actualizado' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al actualizar estado' });
+        res.status(500).json({ message: 'Error al actualizar estado', error: error.message });
     }
 };

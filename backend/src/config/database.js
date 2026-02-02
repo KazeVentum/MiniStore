@@ -1,40 +1,16 @@
-const mysql = require('mysql2');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    charset: 'utf8mb4'
-});
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_APIKEY;
 
-const promisePool = pool.promise();
+if (!supabaseUrl || !supabaseKey) {
+    console.error('Missing Supabase URL or Key in environment variables');
+    process.exit(1);
+}
 
-// Test connection with retries
-const connectWithRetry = async (retries = 5, delay = 5000) => {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const connection = await promisePool.getConnection();
-            console.log('Database connected successfully');
-            connection.release();
-            return;
-        } catch (err) {
-            console.error(`Attempt ${i + 1} - Error connecting to database:`, err.message);
-            if (i < retries - 1) {
-                console.log(`Retrying in ${delay / 1000} seconds...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-                console.error('Max retries reached. Could not connect to database.');
-            }
-        }
-    }
-};
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-connectWithRetry();
+console.log('Supabase client initialized');
 
-module.exports = promisePool;
+module.exports = supabase;

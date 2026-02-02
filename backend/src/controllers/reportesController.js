@@ -1,22 +1,32 @@
-const db = require('../config/database');
+const supabase = require('../config/database');
 
 exports.getResumenGanancias = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM vw_resumen_ganancias LIMIT 12');
-        res.json(rows);
+        const { data, error } = await supabase
+            .from('vw_resumen_ganancias')
+            .select('*')
+            .limit(12);
+
+        if (error) throw error;
+        res.json(data);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener resumen de ganancias' });
+        res.status(500).json({ message: 'Error al obtener resumen de ganancias', error: error.message });
     }
 };
 
 exports.getProductosMasVendidos = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM vw_productos_mas_vendidos LIMIT 10');
-        res.json(rows);
+        const { data, error } = await supabase
+            .from('vw_productos_mas_vendidos')
+            .select('*')
+            .limit(10);
+
+        if (error) throw error;
+        res.json(data);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener productos más vendidos' });
+        res.status(500).json({ message: 'Error al obtener productos más vendidos', error: error.message });
     }
 };
 
@@ -28,11 +38,15 @@ exports.getVentasRecientes = async (req, res) => {
         if (periodo === '15') viewName = 'vw_ventas_15_dias';
         if (periodo === '30') viewName = 'vw_ventas_30_dias';
 
-        const [rows] = await db.query(`SELECT * FROM ${viewName}`);
-        res.json(rows);
+        const { data, error } = await supabase
+            .from(viewName)
+            .select('*');
+
+        if (error) throw error;
+        res.json(data);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener ventas recientes' });
+        res.status(500).json({ message: 'Error al obtener ventas recientes', error: error.message });
     }
 };
 
@@ -41,38 +55,61 @@ exports.getVentasMensuales = async (req, res) => {
         const { mes, anio } = req.query; // Format: MM, YYYY
         const targetMonth = mes || (new Date().getMonth() + 1).toString().padStart(2, '0');
         const targetYear = anio || new Date().getFullYear().toString();
-        const dateFilter = `${targetYear}-${targetMonth}`;
 
-        // 1. Total sales and breakdown
-        const [summaryRows] = await db.query(`
-            SELECT 
+        // Calculate date range for filter
+        const startDate = `${targetYear}-${targetMonth}-01`;
+        // Handle end date (last day of month)
+        const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+        const endDate = `${targetYear}-${targetMonth}-${lastDay}`;
+
+        // Fetch all non-cancelled orders for the month with details
+        const { data: pedidos, error } = await supabase
+            .from('pedidos')
+            .select(`
+                id_pedido,
+                fecha_pedido,
+                total,
                 metodo_pago,
-                count(*) as cantidad_pedidos,
-                SUM(total) as total_monto
-            FROM PEDIDOS 
-            WHERE DATE_FORMAT(fecha_pedido, '%Y-%m') = ? 
-              AND estado != 'cancelado'
-            GROUP BY metodo_pago
-        `, [dateFilter]);
+                clientes (nombre_cliente),
+                detalle_pedidos (
+                    productos (nombre_producto)
+                )
+            `)
+            .gte('fecha_pedido', startDate)
+            .lte('fecha_pedido', endDate)
+            .neq('estado', 'cancelado')
+            .order('id_pedido', { ascending: false });
 
-        // 2. Detailed list with concatenated products
-        const [orderRows] = await db.query(`
-            SELECT 
-                p.id_pedido,
-                p.fecha_pedido,
-                p.total,
-                p.metodo_pago,
-                c.nombre_cliente,
-                GROUP_CONCAT(pr.nombre_producto SEPARATOR ', ') as productos_resumen
-            FROM PEDIDOS p
-            JOIN CLIENTES c ON p.id_cliente = c.id_cliente
-            LEFT JOIN DETALLE_PEDIDOS dp ON p.id_pedido = dp.id_pedido
-            LEFT JOIN PRODUCTOS pr ON dp.id_producto = pr.id_producto
-            WHERE DATE_FORMAT(p.fecha_pedido, '%Y-%m') = ?
-              AND p.estado != 'cancelado'
-            GROUP BY p.id_pedido
-            ORDER BY p.id_pedido DESC
-        `, [dateFilter]);
+        if (error) throw error;
+
+        // 1. Process breakdown (originally summaryRows)
+        const breakdownMap = {};
+        pedidos.forEach(p => {
+            const method = p.metodo_pago || 'No especificado';
+            if (!breakdownMap[method]) {
+                breakdownMap[method] = { metodo_pago: method, cantidad_pedidos: 0, total_monto: 0 };
+            }
+            breakdownMap[method].cantidad_pedidos += 1;
+            breakdownMap[method].total_monto += parseFloat(p.total || 0);
+        });
+        const summaryRows = Object.values(breakdownMap);
+
+        // 2. Process list (originally orderRows with GROUP_CONCAT)
+        const orderRows = pedidos.map(p => {
+            const productNames = p.detalle_pedidos
+                .map(dp => dp.productos?.nombre_producto)
+                .filter(Boolean)
+                .join(', ');
+
+            return {
+                id_pedido: p.id_pedido,
+                fecha_pedido: p.fecha_pedido,
+                total: p.total,
+                metodo_pago: p.metodo_pago,
+                nombre_cliente: p.clientes?.nombre_cliente,
+                productos_resumen: productNames
+            };
+        });
 
         res.json({
             resumen: summaryRows,
@@ -81,45 +118,65 @@ exports.getVentasMensuales = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener ventas mensuales' });
+        res.status(500).json({ message: 'Error al obtener ventas mensuales', error: error.message });
     }
 };
 
 exports.getDashboardStats = async (req, res) => {
     try {
-        // Get today's sales
-        const [todaySales] = await db.query(`
-            SELECT SUM(total) as total, COUNT(*) as count 
-            FROM PEDIDOS 
-            WHERE DATE(fecha_pedido) = CURDATE() AND estado != 'cancelado'
-        `);
+        const today = new Date().toISOString().split('T')[0];
 
-        // Get pending orders count
-        const [pendingOrders] = await db.query(`
-            SELECT COUNT(*) as count 
-            FROM PEDIDOS 
-            WHERE estado = 'pendiente'
-        `);
+        // Parallelize requests
+        const [
+            todaySalesResult,
+            pendingOrdersResult,
+            totalProductsResult,
+            historicalSalesResult
+        ] = await Promise.all([
+            // 1. Today's sales
+            supabase
+                .from('pedidos')
+                .select('total')
+                .eq('fecha_pedido', today)
+                .neq('estado', 'cancelado'),
 
-        // Get total products
-        const [totalProducts] = await db.query('SELECT COUNT(*) as count FROM PRODUCTOS WHERE activo = TRUE');
+            // 2. Pending orders count
+            supabase
+                .from('pedidos')
+                .select('id_pedido', { count: 'exact', head: true })
+                .eq('estado', 'pendiente'),
 
-        // Get total historical sales
-        const [historicalSales] = await db.query(`
-            SELECT SUM(total) as total 
-            FROM PEDIDOS 
-            WHERE estado != 'cancelado'
-        `);
+            // 3. Total products
+            supabase
+                .from('productos')
+                .select('id_producto', { count: 'exact', head: true })
+                .eq('activo', true),
+
+            // 4. Historical sales
+            supabase
+                .from('pedidos')
+                .select('total')
+                .neq('estado', 'cancelado')
+        ]);
+
+        // Process Today Sales
+        const todaySalesData = todaySalesResult.data || [];
+        const ventasHoy = todaySalesData.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
+        const pedidosHoy = todaySalesResult.count || todaySalesResult.data?.length || 0; // count might be missing if simple select
+
+        // Process Historical Sales
+        const historicalSalesData = historicalSalesResult.data || [];
+        const totalHistorico = historicalSalesData.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
 
         res.json({
-            ventasHoy: todaySales[0].total || 0,
-            pedidosHoy: todaySales[0].count || 0,
-            pedidosPendientes: pendingOrders[0].count || 0,
-            totalProductos: totalProducts[0].count || 0,
-            totalHistorico: historicalSales[0].total || 0
+            ventasHoy,
+            pedidosHoy, // Note: original query was COUNT(*) of sales today.
+            pedidosPendientes: pendingOrdersResult.count || 0,
+            totalProductos: totalProductsResult.count || 0,
+            totalHistorico
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener estadísticas del dashboard' });
+        res.status(500).json({ message: 'Error al obtener estadísticas del dashboard', error: error.message });
     }
 };
