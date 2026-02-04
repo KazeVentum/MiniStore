@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useSupabase } from '../services/supabase';
-import { saveProductosBulk, saveClientesBulk, savePedidosBulk, getProductos, getClientes, getPedidos } from '../services/database';
+import { saveProductosBulk, saveClientesBulk, savePedidosBulk, saveCanalesBulk, getProductos, getClientes, getPedidos, getCanales } from '../services/database';
+import { performFullSync } from '../services/sync';
 
 const SyncScreen = () => {
     const { supabase } = useSupabase();
@@ -10,50 +11,28 @@ const SyncScreen = () => {
         lastSync: 'Nuca',
         localProducts: 0,
         localClients: 0,
-        localPedidos: 0
+        localPedidos: 0,
+        localCanales: 0
     });
 
     const syncData = async () => {
         setLoading(true);
         try {
-            // 1. Fetch from Supabase
-            console.log('Fetching products from Supabase...');
-            const { data: products, error: pError } = await supabase
-                .from('productos')
-                .select('*');
+            // Use the shared sync service
+            await performFullSync();
 
-            if (pError) throw pError;
-
-            console.log('Fetching clients from Supabase...');
-            const { data: clients, error: cError } = await supabase
-                .from('clientes')
-                .select('*');
-
-            if (cError) throw cError;
-
-            console.log('Fetching orders from Supabase...');
-            const { data: pedidos, error: oError } = await supabase
-                .from('pedidos')
-                .select('*');
-
-            if (oError) throw oError;
-
-            // 2. Save to SQLite
-            console.log('Saving to SQLite...');
-            await saveProductosBulk(products);
-            await saveClientesBulk(clients);
-            await savePedidosBulk(pedidos);
-
-            // 3. Update stats
+            // Update stats
             const localP = await getProductos();
             const localC = await getClientes();
             const localO = await getPedidos();
+            const localCh = await getCanales();
 
             setStats({
                 lastSync: new Date().toLocaleString(),
                 localProducts: localP.rows.length,
                 localClients: localC.rows.length,
-                localPedidos: localO.rows.length
+                localPedidos: localO.rows.length,
+                localCanales: localCh.rows.length
             });
 
             Alert.alert('Éxito', 'Sincronización completada correctamente');
@@ -70,11 +49,13 @@ const SyncScreen = () => {
             const localP = await getProductos();
             const localC = await getClientes();
             const localO = await getPedidos();
+            const localCh = await getCanales();
             setStats(prev => ({
                 ...prev,
                 localProducts: localP.rows.length,
                 localClients: localC.rows.length,
-                localPedidos: localO.rows.length
+                localPedidos: localO.rows.length,
+                localCanales: localCh.rows.length
             }));
         } catch (error) {
             console.error('Failed to refresh stats:', error);
@@ -105,6 +86,10 @@ const SyncScreen = () => {
                 <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Pedidos:</Text>
                     <Text style={styles.statValue}>{stats.localPedidos}</Text>
+                </View>
+                <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Canales:</Text>
+                    <Text style={styles.statValue}>{stats.localCanales}</Text>
                 </View>
                 <View style={styles.statRow}>
                     <Text style={styles.statLabel}>Última Sinc:</Text>
