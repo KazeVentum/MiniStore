@@ -8,10 +8,11 @@ Documento de contexto para asistentes de IA trabajando en el proyecto MiniStore.
 
 MiniStore es una aplicación fullstack para la gestión de una tienda de bisutería y artesanías. Permite gestionar productos, pedidos, clientes, y generar reportes de ventas.
 
-**Versión actual:** 2.0.0
+**Versión actual:** 2.1.0 (Mobile Beta)
 
 ### Historial de Versiones
 
+- **[2.1.0]** - 2026-02-04: Mobile App Fase 1 (Offline First, SQLite, Sync Híbrido)
 - **[2.0.0]** - 2026-02-02: Migración a Supabase (PostgreSQL cloud), Dockerización completa
 - **[1.9.1]** - 2026-01-28: UI renovada con diseño moderno de lista de tarjetas
 
@@ -25,12 +26,35 @@ MiniStore es una aplicación fullstack para la gestión de una tienda de bisuter
 │  (React)    │  HTTP   │  (Express)  │   SQL   │ (PostgreSQL)│
 │  Port:5173  │         │  Port:3000  │         │   Cloud     │
 └─────────────┘         └─────────────┘         └─────────────┘
+                               ▲                       ▲
+                               │                       │
+                        ┌──────────────┐        ┌─────────────┐
+                        │ Mobile App   │───────▶│  Sync Direct│
+                        │ (React Nat.) │        │ (Fallback)  │
+                        └──────────────┘        └─────────────┘
+                               │
+                        ┌──────────────┐
+                        │ SQLite Local │
+                        │ (Offline DB) │
+                        └──────────────┘
 ```
 
 - **Frontend:** React 18 + Vite + Tailwind CSS
 - **Backend:** Node.js + Express 5
 - **Base de Datos:** Supabase (PostgreSQL en la nube)
+- **Mobile:** React Native (Expo) + SQLite (Offline First)
 - **Contenerización:** Docker + Docker Compose
+
+### 2.1 Arquitectura Móvil (Offline-First)
+
+La aplicación móvil está diseñada para funcionar sin conexión a internet constante.
+
+1.  **Lectura/Escritura Local:** Todas las operaciones de creación de pedidos y lectura de productos/clientes se realizan contra la base de datos local (SQLite).
+2.  **Sincronización Híbrida:**
+    -   **Intento 1 (Localhost):** Al detectar red, intenta conectar con el Backend local (`http://localhost:3000`) si está en la misma red WiFi.
+    -   **Intento 2 (Supabase Directo):** Si falla el backend local, conecta directamente a Supabase Cloud para sincronizar cambios.
+3.  **Conflictos:** Estrategia "Last Modified Wins". La última modificación registrada gana.
+
 
 ---
 
@@ -59,13 +83,13 @@ MiniStore es una aplicación fullstack para la gestión de una tienda de bisuter
 ### Mobile (Expo React Native)
 - **Framework:** Expo SDK 50+
 - **Platform:** React Native 0.73+
-- **Database Local:** SQLite (expo-sqlite)
-- **Backend Integration:** Supabase React Native Client
+- **Database Local:** SQLite (expo-sqlite) - *Espejo exacto de esquema Supabase*
+- **Backend Integration:** Híbrido (Localhost + Fallback Supabase Directo)
 - **State Management:** Zustand (reutilizado de web)
 - **Data Fetching:** TanStack Query React Native
-- **Navigation:** React Navigation 6
-- **Offline Sync:** Custom implementation
-- **Notifications:** Expo Notifications
+- **Navigation:** React Navigation 6 (Stack + Tabs)
+- **Offline Sync:** Custom "Last Modified Wins" strategy
+- **Notifications:** Expo Notifications (Local Scheduling)
 - **Network Detection:** React Native NetInfo
 - **Build Tool:** Expo EAS Build
 
@@ -153,8 +177,15 @@ bisuteria-app/
 │   ├── src/
 │   │   ├── components/         # Componentes UI nativos
 │   │   ├── screens/            # Pantallas principales
+│   │   │   ├── DashboardScreen.js
+│   │   │   ├── SupabaseTestScreen.js
+│   │   │   └── SqliteTestScreen.js
 │   │   ├── navigation/         # Configuración navegación
+│   │   │   └── index.js
 │   │   ├── services/           # API y sincronización
+│   │   │   ├── database.js     # Lógica SQLite (CRUD)
+│   │   │   ├── supabase.js     # Cliente Supabase
+│   │   │   └── config.js       # Configuración entorno
 │   │   ├── hooks/              # Hooks personalizados
 │   │   ├── store/              # Zustand state management
 │   │   └── utils/              # Utilidades
