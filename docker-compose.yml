@@ -34,6 +34,22 @@ services:
     networks:
       - ministore-network
 
+  mobile:
+    build: ./mobile
+    container_name: MiniStore_Mobile
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    volumes:
+      - ./mobile:/app
+      - /app/node_modules
+      - /app/.expo
+    stdin_open: true
+    tty: true
+
 networks:
   ministore-network:
     driver: bridge
