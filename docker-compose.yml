@@ -47,6 +47,8 @@ services:
       - ./mobile:/app
       - /app/node_modules
       - /app/.expo
+    environment:
+      - EXPO_NO_TELEMETRY=1
     stdin_open: true
     tty: true
 

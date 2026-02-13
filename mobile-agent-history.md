@@ -9,6 +9,27 @@
 
 ## 🏗️ Timeline de Desarrollo
 
+### 2026-02-12/13 - AI Agent (Rediseño Luxury, Analítica y Gestión Pro)
+
+#### **Fases: 20.2 & 21 (Finalizadas)**
+
+**Hitos Alcanzados:**
+- [x] **Identidad Visual:** Integración de nuevo logo personalizado (gatito), favicon y splash screen con color de marca fucsia.
+- [x] **Rediseño "Dark Pink Luxury":** Transformación total de la UI (Dashboard, Pedidos, Clientes, Productos) para un look premium en modo oscuro.
+- [x] **Analítica de Ventas:** Implementación del módulo de "Resumen" mensual con estadísticas de facturación y bitácora de operaciones.
+- [x] **Gestión Pro:** Implementación de borrado lógico para Clientes y Productos, permitiendo depurar el catálogo sin romper el histórico de pedidos.
+- [x] **Optimización de UX:** Solución definitiva al solapamiento de teclado en el formulario de pedidos y rediseño horizontal de tarjetas de productos.
+- [x] **Robustez:** Fix de formato de fechas ("Invalid Date") para compatibilidad SQLite/JS en toda la app.
+
+**Decisiones Técnicas:**
+- **Borrado Lógico:** No se eliminan registros físicamente para evitar errores de integridad referencial. Se usa el flag `activo = 0`.
+- **UI Architecture:** Implementación de avatares generativos basados en iniciales y colores hash para la lista de clientes.
+- **Date Normalization:** Centralización de `formatDate` en `helpers.js` para manejar la inconsistencia de strings de SQLite.
+
+**Última Actualización:** 2026-02-13 por AI Agent
+
+---
+
 ### 2026-02-05 - AI Agent (Sincronización de Contexto y Auditoría)
 
 #### **Fase: Auditoría de Estado Actual**
