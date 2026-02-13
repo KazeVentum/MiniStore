@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getDashboardStats } from '../services/database';
 import { performFullSync } from '../services/sync';
 import { addSyncListener } from '../services/network';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_WEIGHTS } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 
 const DashboardScreen = ({ navigation }) => {
+    const { isTablet, getGridColumns, scaleFont } = useResponsive();
     const [stats, setStats] = useState({
         totalVentas: 0,
         pedidosTotales: 0,
@@ -30,7 +34,6 @@ const DashboardScreen = ({ navigation }) => {
         }
     };
 
-    // Monitor connection
     useEffect(() => {
         const unsubscribe = NetInfo.addEventListener(state => {
             setIsConnected(!!state.isConnected && !!state.isInternetReachable);
@@ -38,7 +41,6 @@ const DashboardScreen = ({ navigation }) => {
         return () => unsubscribe();
     }, []);
 
-    // Refresh data when screen is focused
     useFocusEffect(
         useCallback(() => {
             loadStats();
@@ -47,7 +49,6 @@ const DashboardScreen = ({ navigation }) => {
 
     useEffect(() => {
         const unsubscribe = addSyncListener(() => {
-            console.log('Background sync detected, refreshing Dashboard stats...');
             loadStats();
         });
         return unsubscribe;
@@ -57,7 +58,6 @@ const DashboardScreen = ({ navigation }) => {
         setRefreshing(true);
         try {
             if (isConnected) {
-                console.log('Initiating sync during pull-to-refresh...');
                 await performFullSync();
             }
             await loadStats();
@@ -68,122 +68,126 @@ const DashboardScreen = ({ navigation }) => {
         }
     };
 
-    const StatCard = ({ title, value, icon, color, subtitle }) => (
-        <View style={styles.statCard}>
-            <View style={[styles.iconBox, { backgroundColor: color + '15' }]}>
-                <Text style={styles.iconText}>{icon}</Text>
+    const StatCard = ({ title, value, icon, color, subtitle, fullWidth }) => {
+        const cols = getGridColumns(1, 2, 2);
+        return (
+            <View style={[
+                styles.statCardWrapper,
+                { width: fullWidth ? '100%' : `${100 / getGridColumns(2, 3, 4)}%` }
+            ]}>
+                <View style={styles.statCard}>
+                    <View style={[styles.iconBox, { backgroundColor: color + '15' }]}>
+                        <MaterialCommunityIcons name={icon} size={24} color={color} />
+                    </View>
+                    <View style={styles.statContent}>
+                        <Text style={styles.statTitle}>{title}</Text>
+                        <Text
+                            style={[styles.statValue, { color: COLORS.textPrimary }]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                        >
+                            {value}
+                        </Text>
+                        {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
+                    </View>
+                </View>
             </View>
-            <View style={styles.statContent}>
-                <Text style={styles.statTitle}>{title}</Text>
-                <Text
-                    style={[styles.statValue, { color: color }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                >
-                    {value}
-                </Text>
-                {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
-            </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <ScrollView
             style={styles.container}
             contentContainerStyle={{ paddingBottom: 110 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
         >
             <View style={styles.header}>
                 <View>
                     <Text style={styles.welcome}>¡Hola! ✨</Text>
                     <Text style={styles.appName}>Lina</Text>
                 </View>
-                <View style={[styles.netBadge, { backgroundColor: isConnected ? '#4CAF50' : '#FF5252' }]}>
-                    <Text style={styles.netText}>{isConnected ? '● Online' : '● Offline'}</Text>
+                <View style={[styles.netBadge, { backgroundColor: isConnected ? COLORS.success + '20' : COLORS.error + '20' }]}>
+                    <View style={[styles.dot, { backgroundColor: isConnected ? COLORS.success : COLORS.error }]} />
+                    <Text style={[styles.netText, { color: isConnected ? COLORS.success : COLORS.error }]}>
+                        {isConnected ? 'Online' : 'Offline'}
+                    </Text>
                 </View>
             </View>
 
             {stats.pedidosPendientesSync > 0 && (
-                <View style={[styles.syncAlert, { backgroundColor: '#e3f2fd', borderColor: '#bbdefb' }]}>
-                    <Text style={[styles.syncAlertText, { color: '#1976d2' }]}>
-                        📥 Tienes {stats.pedidosPendientesSync} pedido(s) pendientes de subir.
-                    </Text>
-                </View>
-            )}
-
-            {stats.pedidosPendientesEstado > 0 && (
                 <View style={styles.syncAlert}>
+                    <MaterialCommunityIcons name="cloud-upload" size={18} color={COLORS.info} />
                     <Text style={styles.syncAlertText}>
-                        ⏳ Tienes {stats.pedidosPendientesEstado} pedido(s) pendientes por procesar.
+                        Tienes {stats.pedidosPendientesSync} pedido(s) pendientes de subir.
                     </Text>
                 </View>
             )}
 
             <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>Resumen de Hoy</Text>
+                <Text style={styles.sectionHeaderTitle}>Resumen de Hoy</Text>
                 <View style={styles.grid}>
-                    <View style={styles.halfWidth}>
-                        <StatCard
-                            title="Ventas Hoy"
-                            value={`$${stats.ventasHoy.toLocaleString()}`}
-                            icon="💰"
-                            color="#4CAF50"
-                        />
-                    </View>
-                    <View style={styles.halfWidth}>
-                        <StatCard
-                            title="Pedidos Hoy"
-                            value={stats.pedidosHoy}
-                            icon="📦"
-                            color="#FF9800"
-                        />
-                    </View>
+                    <StatCard
+                        title="Ventas Hoy"
+                        value={`$${stats.ventasHoy.toLocaleString()}`}
+                        icon="cash-multiple"
+                        color={COLORS.primary}
+                    />
+                    <StatCard
+                        title="Pedidos Hoy"
+                        value={stats.pedidosHoy}
+                        icon="package-variant-closed"
+                        color={COLORS.secondary}
+                    />
                 </View>
+
+                <TouchableOpacity
+                    style={[styles.resumenBtn, SHADOWS.soft]}
+                    onPress={() => navigation.navigate('ResumenVentas')}
+                >
+                    <View style={styles.resumenBtnContent}>
+                        <MaterialCommunityIcons name="chart-box-outline" size={24} color="#FFF" />
+                        <Text style={styles.resumenBtnText}>Análisis de Ventas</Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
+                </TouchableOpacity>
             </View>
 
             <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>General</Text>
+                <Text style={styles.sectionHeaderTitle}>General</Text>
                 <View style={styles.grid}>
-                    <View style={styles.fullWidth}>
-                        <StatCard
-                            title="Ventas Totales"
-                            value={`$${stats.totalVentas.toLocaleString()}`}
-                            icon="📈"
-                            color="#2196F3"
-                            subtitle={`${stats.pedidosTotales} pedidos registrados`}
-                        />
-                    </View>
-
-                    <View style={styles.halfWidth}>
-                        <StatCard
-                            title="Productos"
-                            value={stats.totalProductos}
-                            icon="💍"
-                            color="#9C27B0"
-                        />
-                    </View>
-
-                    <View style={styles.halfWidth}>
-                        <StatCard
-                            title="Clientes"
-                            value={stats.totalClientes}
-                            icon="👤"
-                            color="#F44336"
-                        />
-                    </View>
+                    <StatCard
+                        title="Ventas Totales"
+                        value={`$${stats.totalVentas.toLocaleString()}`}
+                        icon="trending-up"
+                        color={COLORS.info}
+                        subtitle={`${stats.pedidosTotales} pedidos`}
+                        fullWidth={!isTablet}
+                    />
+                    <StatCard
+                        title="Productos"
+                        value={stats.totalProductos}
+                        icon="necklace"
+                        color={COLORS.accent}
+                    />
+                    <StatCard
+                        title="Clientes"
+                        value={stats.totalClientes}
+                        icon="account-group"
+                        color={COLORS.secondary}
+                    />
                 </View>
             </View>
 
             <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeaderLine}>
-                    <Text style={styles.sectionTitle}>Top 5 Productos</Text>
-                    <Text style={styles.sectionSubtitle}>Más vendidos</Text>
+                    <Text style={styles.sectionHeaderTitle}>Top 5 Productos</Text>
+                    <Text style={styles.sectionSubtitle}>Tendencia</Text>
                 </View>
                 <View style={styles.topProductsCard}>
                     {stats.topProductos.length > 0 ? (
                         stats.topProductos.map((item, index) => (
                             <View key={index} style={styles.topProductRow}>
-                                <Text style={styles.topProductRank}>#{index + 1}</Text>
+                                <Text style={styles.topProductRank}>{index + 1}</Text>
                                 <Text style={styles.topProductName} numberOfLines={1}>{item.nombre_producto}</Text>
                                 <View style={styles.topProductQtyBadge}>
                                     <Text style={styles.topProductQtyText}>{item.total_vendido} uds</Text>
@@ -191,19 +195,12 @@ const DashboardScreen = ({ navigation }) => {
                             </View>
                         ))
                     ) : (
-                        <Text style={styles.emptyTopProducts}>Aún no hay ventas registradas</Text>
+                        <View style={styles.emptyContainer}>
+                            <MaterialCommunityIcons name="package-variant" size={40} color={COLORS.textTertiary} />
+                            <Text style={styles.emptyTopProducts}>Aún no hay ventas registradas</Text>
+                        </View>
                     )}
                 </View>
-            </View>
-
-            <View style={styles.actions}>
-                <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-                <TouchableOpacity
-                    style={styles.primaryAction}
-                    onPress={() => navigation.navigate('NuevoPedido')}
-                >
-                    <Text style={styles.primaryActionText}>+ Crear Nuevo Pedido</Text>
-                </TouchableOpacity>
             </View>
         </ScrollView>
     );
@@ -212,192 +209,217 @@ const DashboardScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: COLORS.background,
     },
     header: {
-        padding: 25,
-        backgroundColor: '#fff',
+        paddingTop: 60,
+        paddingHorizontal: SPACING.lg,
+        paddingBottom: SPACING.xl,
+        backgroundColor: COLORS.surface,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        borderBottomLeftRadius: BORDER_RADIUS.xl,
+        borderBottomRightRadius: BORDER_RADIUS.xl,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: COLORS.border,
     },
     welcome: {
         fontSize: 14,
-        color: '#636e72',
-        fontWeight: '500',
+        color: COLORS.textSecondary,
+        fontWeight: FONT_WEIGHTS.medium,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     appName: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#2d3436',
+        fontSize: 32,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textPrimary,
+        marginTop: 4,
     },
     netBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.round,
+    },
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
     },
     netText: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: 'bold',
+        fontSize: 12,
+        fontWeight: FONT_WEIGHTS.bold,
     },
     syncAlert: {
-        margin: 20,
-        padding: 12,
-        backgroundColor: '#fff3cd',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#ffeaa7',
+        marginHorizontal: SPACING.lg,
+        marginTop: SPACING.md,
+        padding: SPACING.md,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.lg,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderLeftWidth: 4,
+        borderLeftColor: COLORS.info,
+        ...SHADOWS.soft,
     },
     syncAlertText: {
-        color: '#856404',
-        fontSize: 12,
-        fontWeight: 'bold',
-        textAlign: 'center',
+        color: COLORS.textPrimary,
+        fontSize: 13,
+        fontWeight: FONT_WEIGHTS.medium,
+        marginLeft: 10,
+        flex: 1,
+    },
+    sectionContainer: {
+        marginTop: SPACING.xl,
+        paddingHorizontal: SPACING.md,
+    },
+    sectionHeaderTitle: {
+        fontSize: 18,
+        fontWeight: FONT_WEIGHTS.bold,
+        color: COLORS.textPrimary,
+        marginBottom: SPACING.md,
+        paddingHorizontal: SPACING.sm,
     },
     grid: {
-        padding: 15,
         flexDirection: 'row',
         flexWrap: 'wrap',
     },
-    fullWidth: {
-        width: '100%',
-        padding: 5,
-    },
-    halfWidth: {
-        width: '50%',
-        padding: 5,
-    },
-    statCard: {
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        padding: 20,
+    resumenBtn: {
+        backgroundColor: COLORS.primary,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: 16,
+        marginTop: SPACING.md,
+        marginHorizontal: SPACING.sm,
         flexDirection: 'row',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
+        justifyContent: 'space-between',
+    },
+    resumenBtnContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    resumenBtnText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: FONT_WEIGHTS.black,
+        marginLeft: 12,
+    },
+    statCardWrapper: {
+        padding: SPACING.xs,
+    },
+    statCard: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 100,
+        ...SHADOWS.soft,
     },
     iconBox: {
-        width: 50,
-        height: 50,
-        borderRadius: 15,
+        width: 48,
+        height: 48,
+        borderRadius: BORDER_RADIUS.md,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 15,
-    },
-    iconText: {
-        fontSize: 24,
+        marginRight: SPACING.md,
     },
     statContent: {
         flex: 1,
     },
     statTitle: {
-        fontSize: 12,
-        color: '#636e72',
-        fontWeight: '600',
+        fontSize: 11,
+        color: COLORS.textSecondary,
+        fontWeight: FONT_WEIGHTS.semiBold,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     statValue: {
-        fontSize: 18,
-        fontWeight: '900',
+        fontSize: 20,
+        fontWeight: FONT_WEIGHTS.black,
         marginVertical: 2,
     },
     statSubtitle: {
         fontSize: 10,
-        color: '#b2bec3',
-    },
-    actions: {
-        padding: 20,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2d3436',
-        marginBottom: 15,
-    },
-    sectionContainer: {
-        marginTop: 20,
-        paddingHorizontal: 15,
+        color: COLORS.textTertiary,
     },
     sectionHeaderLine: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'baseline',
-        marginBottom: 15,
+        marginBottom: SPACING.md,
+        paddingHorizontal: SPACING.sm,
     },
     sectionSubtitle: {
         fontSize: 12,
-        color: '#b2bec3',
-        fontWeight: '500',
+        color: COLORS.primary,
+        fontWeight: FONT_WEIGHTS.bold,
     },
     topProductsCard: {
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.xl,
+        padding: SPACING.md,
+        marginHorizontal: SPACING.sm,
+        ...SHADOWS.soft,
     },
     topProductRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: SPACING.md,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f3f5',
+        borderBottomColor: COLORS.surfaceSecondary,
     },
     topProductRank: {
-        fontSize: 14,
-        fontWeight: '900',
-        color: '#b2bec3',
+        fontSize: 12,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textTertiary,
         width: 30,
+        textAlign: 'center',
     },
     topProductName: {
         flex: 1,
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#2d3436',
+        fontSize: 15,
+        fontWeight: FONT_WEIGHTS.medium,
+        color: COLORS.textPrimary,
         marginRight: 10,
     },
     topProductQtyBadge: {
-        backgroundColor: '#f1f3f5',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
+        backgroundColor: COLORS.surfaceSecondary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.md,
     },
     topProductQtyText: {
         fontSize: 12,
-        fontWeight: 'bold',
-        color: '#636e72',
+        fontWeight: FONT_WEIGHTS.bold,
+        color: COLORS.secondary,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        paddingVertical: SPACING.xl,
     },
     emptyTopProducts: {
         textAlign: 'center',
-        color: '#b2bec3',
+        color: COLORS.textTertiary,
         fontStyle: 'italic',
-        paddingVertical: 10,
+        marginTop: 10,
     },
-    primaryAction: {
-        backgroundColor: '#2d3436',
-        padding: 18,
-        borderRadius: 16,
+    fab: {
+        position: 'absolute',
+        right: 25,
+        bottom: 115, // Adjusted for new tab bar height
+        backgroundColor: COLORS.primary,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 15,
-        elevation: 5,
-    },
-    primaryActionText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+        ...SHADOWS.heavy,
+        zIndex: 10,
     }
 });
 

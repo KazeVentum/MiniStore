@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from 'react-native';
-import { getClientes, createCliente, updateCliente } from '../services/database';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, RefreshControl, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { getClientes, createCliente, updateCliente, deleteCliente } from '../services/database';
 import { processAutoSync } from '../services/network';
 import { performFullSync } from '../services/sync';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_WEIGHTS } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 
 const ClientesScreen = () => {
+    const { isTablet, getGridColumns, scaleFont } = useResponsive();
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingCliente, setEditingCliente] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Form inputs
     const [nombre, setNombre] = useState('');
@@ -87,89 +92,206 @@ const ClientesScreen = () => {
         }
     };
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity style={styles.card} onPress={() => handleOpenModal(item)}>
-            <View style={styles.info}>
-                <View style={styles.headerRow}>
-                    <Text style={styles.name}>{item.nombre_cliente}</Text>
-                    {item.id_cliente > 100000 && <Text style={styles.tempTag}>Local</Text>}
-                </View>
-                <Text style={styles.detail}>📞 {item.telefono || 'Sin teléfono'}</Text>
-                <Text style={styles.detail}>📍 {item.direccion || 'Sin dirección'}</Text>
+    const handleDelete = async () => {
+        if (!editingCliente) return;
+
+        Alert.alert(
+            'Eliminar Cliente',
+            '¿Estás seguro de que deseas eliminar este cliente? No podrás verlo en la lista, pero sus pedidos históricos se mantendrán.',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Eliminar',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteCliente(editingCliente.id_cliente);
+                            setModalVisible(false);
+                            processAutoSync();
+                            await loadClientes();
+                        } catch (error) {
+                            console.error('Error deleting client:', error);
+                            Alert.alert('Error', 'No se pudo eliminar el cliente');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+
+    const getAvatarColor = (name) => {
+        const colors = ['#FF4081', '#7C4DFF', '#00BCD4', '#4CAF50', '#FFC107', '#FF5722'];
+        const index = name.charCodeAt(0) % colors.length;
+        return colors[index];
+    };
+
+    const renderItem = ({ item }) => {
+        const cardWidth = isTablet ? `${100 / getGridColumns(1, 2, 3)}%` : '100%';
+        const avatarColor = getAvatarColor(item.nombre_cliente);
+        const initials = item.nombre_cliente.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+
+        return (
+            <View style={{ width: cardWidth, paddingHorizontal: 5 }}>
+                <TouchableOpacity
+                    style={styles.card}
+                    activeOpacity={0.7}
+                    onPress={() => handleOpenModal(item)}
+                >
+                    <View style={[styles.clientAvatar, { backgroundColor: avatarColor + '20' }]}>
+                        <Text style={[styles.avatarText, { color: avatarColor }]}>{initials}</Text>
+                    </View>
+                    <View style={styles.info}>
+                        <View style={styles.headerRow}>
+                            <Text style={styles.name}>{item.nombre_cliente}</Text>
+                            {item.id_cliente > 100000 && (
+                                <View style={styles.localTag}>
+                                    <Text style={styles.localTagText}>L</Text>
+                                </View>
+                            )}
+                        </View>
+                        <View style={styles.detailRow}>
+                            <MaterialCommunityIcons name="phone-outline" size={14} color={COLORS.textTertiary} />
+                            <Text style={styles.detailText}>{item.telefono || 'Sin teléfono'}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <MaterialCommunityIcons name="map-marker-outline" size={14} color={COLORS.textTertiary} />
+                            <Text style={styles.detailText} numberOfLines={1}>{item.direccion || 'Sin dirección'}</Text>
+                        </View>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.surfaceSecondary} />
+                </TouchableOpacity>
             </View>
-            <Text style={styles.editIcon}>✏️</Text>
-        </TouchableOpacity>
+        );
+    };
+
+    const filteredClientes = clientes.filter(c =>
+        c.nombre_cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.telefono && c.telefono.includes(searchQuery))
     );
 
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#4CAF50" />
+                <ActivityIndicator size="large" color={COLORS.primary} />
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
+            <View style={[styles.searchBar, SHADOWS.soft]}>
+                <View style={styles.searchInner}>
+                    <MaterialCommunityIcons name="account-search" size={20} color={COLORS.textTertiary} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar cliente..."
+                        placeholderTextColor={COLORS.textTertiary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color={COLORS.textTertiary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+
             <FlatList
-                data={clientes}
+                data={filteredClientes}
                 renderItem={renderItem}
                 keyExtractor={item => item.id_cliente.toString()}
                 contentContainerStyle={[styles.list, { paddingBottom: 110 }]}
+                numColumns={isTablet ? getGridColumns(1, 2, 3) : 1}
+                key={isTablet ? 'tablet-list' : 'mobile-list'}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[COLORS.primary]}
+                        tintColor={COLORS.primary}
+                    />
                 }
                 ListEmptyComponent={
                     <View style={styles.empty}>
-                        <Text style={styles.emptyText}>No hay clientes locales.</Text>
+                        <MaterialCommunityIcons name="account-search-outline" size={60} color={COLORS.surfaceSecondary} />
+                        <Text style={styles.emptyText}>No hay clientes</Text>
                         <Text style={styles.emptySubText}>Tira para sincronizar o crea uno nuevo.</Text>
                     </View>
                 }
             />
 
             <TouchableOpacity
-                style={styles.fab}
+                style={[styles.fab, SHADOWS.heavy]}
                 onPress={() => handleOpenModal()}
+                activeOpacity={0.8}
             >
-                <Text style={styles.fabText}>+</Text>
+                <MaterialCommunityIcons name="plus" size={30} color="#fff" />
             </TouchableOpacity>
 
             <Modal visible={modalVisible} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>
-                            {editingCliente ? 'Editar Cliente' : 'Nuevo Cliente'}
-                        </Text>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
+                    <View style={[styles.modalContent, SHADOWS.heavy]}>
+                        <View style={styles.modalHeaderRow}>
+                            <Text style={styles.modalTitle}>
+                                {editingCliente ? 'Editar Cliente' : 'Nuevo Cliente'}
+                            </Text>
+                            {editingCliente && (
+                                <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+                                    <MaterialCommunityIcons name="trash-can-outline" size={24} color={COLORS.error} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nombre Completo"
-                            value={nombre}
-                            onChangeText={setNombre}
-                        />
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Nombre</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Nombre completo"
+                                placeholderTextColor={COLORS.textTertiary}
+                                value={nombre}
+                                onChangeText={setNombre}
+                            />
+                        </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Teléfono"
-                            value={telefono}
-                            onChangeText={setTelefono}
-                            keyboardType="phone-pad"
-                        />
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Teléfono</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="WhatsApp / Celular"
+                                placeholderTextColor={COLORS.textTertiary}
+                                value={telefono}
+                                onChangeText={setTelefono}
+                                keyboardType="phone-pad"
+                            />
+                        </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Dirección"
-                            value={direccion}
-                            onChangeText={setDireccion}
-                        />
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Dirección</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Dirección de envío"
+                                placeholderTextColor={COLORS.textTertiary}
+                                value={direccion}
+                                onChangeText={setDireccion}
+                            />
+                        </View>
 
-                        <TextInput
-                            style={[styles.input, { height: 80 }]}
-                            placeholder="Notas / Observaciones"
-                            value={notas}
-                            onChangeText={setNotas}
-                            multiline
-                        />
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Notas</Text>
+                            <TextInput
+                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                placeholder="Observaciones..."
+                                placeholderTextColor={COLORS.textTertiary}
+                                value={notas}
+                                onChangeText={setNotas}
+                                multiline
+                            />
+                        </View>
 
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
@@ -186,7 +308,7 @@ const ClientesScreen = () => {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -195,10 +317,30 @@ const ClientesScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: COLORS.background,
+    },
+    searchBar: {
+        padding: SPACING.md,
+        backgroundColor: COLORS.surface,
+        zIndex: 10,
+    },
+    searchInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceSecondary,
+        paddingHorizontal: 12,
+        borderRadius: BORDER_RADIUS.lg,
+        height: 48,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     list: {
-        padding: 15,
+        padding: SPACING.md,
     },
     center: {
         flex: 1,
@@ -206,142 +348,179 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     card: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 15,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.xl,
+        padding: SPACING.md,
+        marginBottom: SPACING.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    clientAvatar: {
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: SPACING.md,
+        borderWidth: 2,
+        borderColor: '#ffffff10',
+    },
+    avatarText: {
+        fontSize: 18,
+        fontWeight: FONT_WEIGHTS.black,
     },
     info: {
         flex: 1,
     },
-    name: {
-        fontSize: 17,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 8,
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
     },
-    detail: {
-        fontSize: 14,
-        color: '#666',
+    name: {
+        fontSize: 16,
+        fontWeight: FONT_WEIGHTS.bold,
+        color: COLORS.textPrimary,
+        flex: 1,
+    },
+    localTag: {
+        backgroundColor: COLORS.primary + '15',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    localTagText: {
+        fontSize: 10,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.primary,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginTop: 2,
+    },
+    detailText: {
+        fontSize: 13,
+        color: COLORS.textSecondary,
+        marginLeft: 6,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     empty: {
         alignItems: 'center',
-        marginTop: 50,
+        marginTop: 80,
     },
     emptyText: {
         fontSize: 18,
-        fontWeight: 'bold',
-        color: '#999',
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textSecondary,
+        marginTop: 16,
     },
     emptySubText: {
         fontSize: 14,
-        color: '#bbb',
+        color: COLORS.textTertiary,
         marginTop: 8,
+        textAlign: 'center',
     },
     fab: {
         position: 'absolute',
-        right: 20,
+        right: 25,
         bottom: 120,
-        backgroundColor: '#4CAF50',
+        backgroundColor: COLORS.primary,
         width: 60,
         height: 60,
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-    },
-    fabText: {
-        color: '#fff',
-        fontSize: 30,
-        fontWeight: 'bold',
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        padding: 20,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        padding: 25,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
+        backgroundColor: COLORS.surface,
+        borderTopLeftRadius: BORDER_RADIUS.xl * 1.5,
+        borderTopRightRadius: BORDER_RADIUS.xl * 1.5,
+        padding: SPACING.xl,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 25,
+    },
+    sheetHandle: {
+        width: 40,
+        height: 5,
+        backgroundColor: COLORS.surfaceSecondary,
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    modalHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 25,
+        marginTop: 10,
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: '#333',
-        textAlign: 'center',
+        fontSize: 22,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textPrimary,
+    },
+    deleteBtn: {
+        padding: 5,
+    },
+    inputWrap: {
+        marginBottom: 16,
+    },
+    inputLabel: {
+        fontSize: 11,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textTertiary,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     input: {
-        backgroundColor: '#f9f9f9',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#eee',
-        fontSize: 16,
+        backgroundColor: COLORS.surfaceSecondary,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: 14,
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     modalButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 10,
+        marginTop: 20,
     },
     modalBtn: {
         flex: 1,
-        padding: 15,
-        borderRadius: 10,
+        height: 55,
+        borderRadius: BORDER_RADIUS.lg,
+        justifyContent: 'center',
         alignItems: 'center',
     },
     cancelBtn: {
         marginRight: 10,
-        backgroundColor: '#f1f1f1',
+        backgroundColor: COLORS.surfaceSecondary,
     },
     saveBtn: {
         marginLeft: 10,
-        backgroundColor: '#4CAF50',
+        backgroundColor: COLORS.primary,
     },
     cancelBtnText: {
-        color: '#666',
-        fontWeight: 'bold',
+        color: COLORS.textSecondary,
+        fontWeight: FONT_WEIGHTS.bold,
+        fontSize: 15,
     },
     saveBtnText: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontWeight: FONT_WEIGHTS.black,
+        fontSize: 15,
     },
-    headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    tempTag: {
-        fontSize: 10,
-        backgroundColor: '#E8F5E9',
-        color: '#4CAF50',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    editIcon: {
-        fontSize: 16,
-        color: '#bbb',
-    }
 });
 
 export default ClientesScreen;

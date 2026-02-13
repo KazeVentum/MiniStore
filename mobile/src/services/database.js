@@ -202,6 +202,13 @@ export const updateProducto = async (prod) => {
   );
 };
 
+export const deleteProducto = async (id) => {
+  return await db.runAsync(
+    'UPDATE PRODUCTOS SET activo = 0, sincronizado = 0 WHERE id_producto = ?',
+    [id]
+  );
+};
+
 // CRUD Operations - Clientes
 export const getClientes = async () => {
   const allRows = await db.getAllAsync('SELECT * FROM CLIENTES WHERE activo = 1');
@@ -234,6 +241,13 @@ export const updateCliente = async (client) => {
   return await db.runAsync(
     `UPDATE CLIENTES SET nombre_cliente = ?, telefono = ?, direccion = ?, notas = ?, sincronizado = 0 WHERE id_cliente = ?`,
     [client.nombre_cliente, client.telefono, client.direccion, client.notas, client.id_cliente]
+  );
+};
+
+export const deleteCliente = async (id) => {
+  return await db.runAsync(
+    'UPDATE CLIENTES SET activo = 0, sincronizado = 0 WHERE id_cliente = ?',
+    [id]
   );
 };
 
@@ -520,4 +534,35 @@ export const updatePedidoId = async (oldId, newId) => {
       await db.runAsync('DELETE FROM PEDIDOS WHERE id_pedido = ?', [oldId]);
     }
   });
+};
+
+/**
+ * Get monthly sales summary and list
+ */
+export const getVentasMensuales = async (mes, anio) => {
+  // Format dates for SQLite (YYYY-MM)
+  const period = `${anio}-${mes}`;
+
+  // 1. Summary by Payment Method
+  const resumen = await db.getAllAsync(`
+    SELECT metodo_pago, COUNT(*) as cantidad_pedidos, SUM(total) as total_monto
+    FROM PEDIDOS
+    WHERE strftime('%Y-%m', fecha_pedido) = ? AND estado != 'cancelado'
+    GROUP BY metodo_pago
+  `, [period]);
+
+  // 2. Detailed Orders for the month
+  const pedidos = await db.getAllAsync(`
+    SELECT p.*, c.nombre_cliente, 
+           (SELECT GROUP_CONCAT(pr.nombre_producto || ' (x' || dp.cantidad || ')', ', ')
+            FROM DETALLE_PEDIDOS dp
+            JOIN PRODUCTOS pr ON dp.id_producto = pr.id_producto
+            WHERE dp.id_pedido = p.id_pedido) as productos_resumen
+    FROM PEDIDOS p
+    LEFT JOIN CLIENTES c ON p.id_cliente = c.id_cliente
+    WHERE strftime('%Y-%m', p.fecha_pedido) = ? AND p.estado != 'cancelado'
+    ORDER BY p.fecha_pedido DESC
+  `, [period]);
+
+  return { resumen, pedidos };
 };

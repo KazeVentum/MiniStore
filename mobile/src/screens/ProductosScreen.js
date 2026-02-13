@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from 'react-native';
-import { getProductos, createProducto, updateProducto, getCategorias } from '../services/database';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, RefreshControl, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { getProductos, createProducto, updateProducto, getCategorias, deleteProducto } from '../services/database';
 import { processAutoSync } from '../services/network';
 import { performFullSync } from '../services/sync';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_WEIGHTS } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 
 const ProductosScreen = () => {
+    const { isTablet, getGridColumns, scaleFont } = useResponsive();
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -95,45 +98,106 @@ const ProductosScreen = () => {
         }
     };
 
+    const handleDelete = async () => {
+        if (!editingProducto) return;
+
+        Alert.alert(
+            'Eliminar Producto',
+            '¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Eliminar',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteProducto(editingProducto.id_producto);
+                            setModalVisible(false);
+                            processAutoSync();
+                            await loadProductos();
+                        } catch (error) {
+                            console.error('Error deleting product:', error);
+                            Alert.alert('Error', 'No se pudo eliminar el producto');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+
     const filteredProductos = productos.filter(p =>
         p.nombre_producto.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity style={styles.card} onPress={() => handleOpenModal(item)}>
-            <View style={styles.info}>
-                <View style={styles.headerRow}>
-                    <Text style={styles.name}>{item.nombre_producto}</Text>
-                    {item.id_producto > 100000 && <Text style={styles.tempTag}>Local</Text>}
-                </View>
-                <Text style={styles.description} numberOfLines={2}>{item.descripcion || 'Sin descripción'}</Text>
+    const formatCurrency = (val) => {
+        return new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            maximumFractionDigits: 0
+        }).format(val);
+    };
+
+    const renderItem = ({ item }) => {
+        const cardWidth = isTablet ? `${100 / getGridColumns(1, 2, 3)}%` : '100%';
+
+        return (
+            <View style={{ width: cardWidth, paddingHorizontal: 5 }}>
+                <TouchableOpacity
+                    style={styles.card}
+                    activeOpacity={0.7}
+                    onPress={() => handleOpenModal(item)}
+                >
+                    <View style={styles.info}>
+                        <View style={styles.headerRow}>
+                            <Text style={styles.name} numberOfLines={1}>{item.nombre_producto}</Text>
+                            {item.id_producto > 100000 && (
+                                <View style={styles.localTag}>
+                                    <Text style={styles.localTagText}>L</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={styles.description} numberOfLines={1}>
+                            {item.descripcion || 'Sin descripción'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.priceContainer}>
+                        <Text style={styles.price}>{formatCurrency(item.precio)}</Text>
+                    </View>
+
+                    <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.surfaceSecondary} style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
             </View>
-            <View style={styles.rightSide}>
-                <View style={styles.priceTag}>
-                    <Text style={styles.price}>${item.precio?.toLocaleString()}</Text>
-                </View>
-                <Text style={styles.editIcon}>✏️</Text>
-            </View>
-        </TouchableOpacity>
-    );
+        );
+    };
 
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#2196F3" />
+                <ActivityIndicator size="large" color={COLORS.primary} />
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
-            <View style={styles.searchBar}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Buscar producto..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
+            <View style={[styles.searchBar, SHADOWS.soft]}>
+                <View style={styles.searchInner}>
+                    <MaterialCommunityIcons name="magnify" size={20} color={COLORS.textTertiary} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar producto..."
+                        placeholderTextColor={COLORS.textTertiary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color={COLORS.textTertiary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             <FlatList
@@ -141,67 +205,101 @@ const ProductosScreen = () => {
                 renderItem={renderItem}
                 keyExtractor={item => item.id_producto.toString()}
                 contentContainerStyle={[styles.list, { paddingBottom: 110 }]}
+                numColumns={isTablet ? getGridColumns(1, 2, 3) : 1}
+                key={isTablet ? 'tablet-list' : 'mobile-list'}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[COLORS.primary]}
+                        tintColor={COLORS.primary}
+                    />
                 }
                 ListEmptyComponent={
                     <View style={styles.empty}>
-                        <Text style={styles.emptyText}>No hay productos que coincidan.</Text>
+                        <MaterialCommunityIcons name="package-variant" size={60} color={COLORS.surfaceSecondary} />
+                        <Text style={styles.emptyText}>No hay productos</Text>
                         <Text style={styles.emptySubText}>Tira para sincronizar o crea uno nuevo.</Text>
                     </View>
                 }
             />
 
             <TouchableOpacity
-                style={styles.fab}
+                style={[styles.fab, SHADOWS.heavy]}
                 onPress={() => handleOpenModal()}
+                activeOpacity={0.8}
             >
-                <Text style={styles.fabText}>+</Text>
+                <MaterialCommunityIcons name="plus" size={30} color="#fff" />
             </TouchableOpacity>
 
             <Modal visible={modalVisible} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>
-                            {editingProducto ? 'Editar Producto' : 'Nuevo Producto'}
-                        </Text>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
+                    <View style={[styles.modalContent, SHADOWS.heavy]}>
+                        <View style={styles.sheetHandle} />
+                        <View style={styles.modalHeaderRow}>
+                            <Text style={styles.modalTitle}>
+                                {editingProducto ? 'Editar Producto' : 'Nuevo Producto'}
+                            </Text>
+                            {editingProducto && (
+                                <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+                                    <MaterialCommunityIcons name="trash-can-outline" size={24} color={COLORS.error} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nombre del Producto"
-                            value={nombre}
-                            onChangeText={setNombre}
-                        />
-
-                        <View style={styles.priceInputContainer}>
-                            <Text style={styles.currencyPrefix}>$</Text>
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Nombre del Producto</Text>
                             <TextInput
-                                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                                placeholder="Precio"
-                                value={precio}
-                                onChangeText={setPrecio}
-                                keyboardType="numeric"
+                                style={styles.input}
+                                placeholder="Escribe el nombre..."
+                                placeholderTextColor={COLORS.textTertiary}
+                                value={nombre}
+                                onChangeText={setNombre}
                             />
                         </View>
 
-                        <TextInput
-                            style={[styles.input, { height: 80, marginTop: 15 }]}
-                            placeholder="Descripción"
-                            value={descripcion}
-                            onChangeText={setDescripcion}
-                            multiline
-                        />
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Precio</Text>
+                            <View style={styles.priceInputContainer}>
+                                <Text style={styles.currencyPrefix}>$</Text>
+                                <TextInput
+                                    style={[styles.input, { flex: 1, backgroundColor: 'transparent' }]}
+                                    placeholder="0"
+                                    placeholderTextColor={COLORS.textTertiary}
+                                    value={precio}
+                                    onChangeText={setPrecio}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                        </View>
 
-                        <Text style={styles.label}>Categoría</Text>
-                        <TouchableOpacity
-                            style={styles.selector}
-                            onPress={() => setCategoryModalVisible(true)}
-                        >
-                            <Text style={styles.selectorText}>
-                                {allCategorias.find(c => c.id_categoria === idCategoria)?.nombre_categoria || 'Seleccionar Categoría'}
-                            </Text>
-                            <MaterialCommunityIcons name="chevron-down" size={20} color="#666" />
-                        </TouchableOpacity>
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Descripción</Text>
+                            <TextInput
+                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                placeholder="Detalles del producto..."
+                                placeholderTextColor={COLORS.textTertiary}
+                                value={descripcion}
+                                onChangeText={setDescripcion}
+                                multiline
+                            />
+                        </View>
+
+                        <View style={styles.inputWrap}>
+                            <Text style={styles.inputLabel}>Categoría</Text>
+                            <TouchableOpacity
+                                style={styles.selector}
+                                onPress={() => setCategoryModalVisible(true)}
+                            >
+                                <Text style={[styles.selectorText, !idCategoria && { color: COLORS.textTertiary }]}>
+                                    {allCategorias.find(c => c.id_categoria === idCategoria)?.nombre_categoria || 'Seleccionar Categoría'}
+                                </Text>
+                                <MaterialCommunityIcons name="chevron-down" size={20} color={COLORS.textTertiary} />
+                            </TouchableOpacity>
+                        </View>
 
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
@@ -218,22 +316,22 @@ const ProductosScreen = () => {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
-            {/* Category Selector Modal */}
+            {/* Category Selector Sheet */}
             <Modal visible={categoryModalVisible} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
+                <View style={styles.bottomSheetOverlay}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => setCategoryModalVisible(false)} />
-                    <View style={styles.sheet}>
+                    <View style={styles.bottomSheet}>
                         <View style={styles.sheetHandle} />
-                        <Text style={styles.sheetTitle}>Seleccionar Categoría</Text>
+                        <Text style={styles.sheetTitle}>Categorías</Text>
                         <FlatList
                             data={allCategorias}
                             keyExtractor={item => item.id_categoria.toString()}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
-                                    style={[styles.option, idCategoria === item.id_categoria && styles.optionSelected]}
+                                    style={[styles.optionItem, idCategoria === item.id_categoria && styles.optionSelected]}
                                     onPress={() => {
                                         setIdCategoria(item.id_categoria);
                                         setCategoryModalVisible(false);
@@ -242,7 +340,9 @@ const ProductosScreen = () => {
                                     <Text style={[styles.optionText, idCategoria === item.id_categoria && styles.optionTextSelected]}>
                                         {item.nombre_categoria}
                                     </Text>
-                                    {idCategoria === item.id_categoria && <MaterialCommunityIcons name="check" size={20} color="#2196F3" />}
+                                    {idCategoria === item.id_categoria && (
+                                        <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
+                                    )}
                                 </TouchableOpacity>
                             )}
                         />
@@ -256,10 +356,30 @@ const ProductosScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: COLORS.background,
+    },
+    searchBar: {
+        padding: SPACING.md,
+        backgroundColor: COLORS.surface,
+        zIndex: 10,
+    },
+    searchInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceSecondary,
+        paddingHorizontal: 12,
+        borderRadius: BORDER_RADIUS.lg,
+        height: 48,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     list: {
-        padding: 15,
+        padding: SPACING.md,
     },
     center: {
         flex: 1,
@@ -267,154 +387,165 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     card: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 15,
-        marginBottom: 12,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.xl,
+        padding: SPACING.lg,
+        marginBottom: SPACING.sm,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     info: {
         flex: 1,
     },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
     name: {
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#333',
+        fontWeight: FONT_WEIGHTS.bold,
+        color: COLORS.textPrimary,
+        flex: 1,
+    },
+    localTag: {
+        backgroundColor: COLORS.primary + '15',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    localTagText: {
+        fontSize: 10,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.primary,
     },
     description: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 4,
+        fontSize: 13,
+        color: COLORS.textSecondary,
+        marginBottom: 8,
+        fontWeight: FONT_WEIGHTS.medium,
     },
-    priceTag: {
-        backgroundColor: '#e7f5ff',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
+    priceContainer: {
+        backgroundColor: COLORS.primary + '15',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.md,
+        marginLeft: 10,
     },
     price: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#228be6',
+        fontSize: 15,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.primary,
     },
     empty: {
         alignItems: 'center',
-        marginTop: 50,
+        marginTop: 80,
     },
     emptyText: {
         fontSize: 18,
-        fontWeight: 'bold',
-        color: '#999',
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textSecondary,
+        marginTop: 16,
     },
     emptySubText: {
         fontSize: 14,
-        color: '#bbb',
+        color: COLORS.textTertiary,
         marginTop: 8,
-    },
-    searchBar: {
-        padding: 15,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-    },
-    searchInput: {
-        backgroundColor: '#f1f3f5',
-        padding: 12,
-        borderRadius: 10,
-        fontSize: 15,
-    },
-    rightSide: {
-        alignItems: 'flex-end',
-    },
-    editIcon: {
-        fontSize: 14,
-        color: '#bbb',
-        marginTop: 5,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    tempTag: {
-        fontSize: 10,
-        backgroundColor: '#E3F2FD',
-        color: '#2196F3',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        overflow: 'hidden',
-        marginLeft: 10,
+        textAlign: 'center',
     },
     fab: {
         position: 'absolute',
-        right: 20,
+        right: 25,
         bottom: 120,
-        backgroundColor: '#2196F3',
+        backgroundColor: COLORS.primary,
         width: 60,
         height: 60,
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-    },
-    fabText: {
-        color: '#fff',
-        fontSize: 30,
-        fontWeight: 'bold',
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        padding: 20,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        padding: 25,
+        backgroundColor: COLORS.surface,
+        borderTopLeftRadius: BORDER_RADIUS.xl * 1.5,
+        borderTopRightRadius: BORDER_RADIUS.xl * 1.5,
+        padding: SPACING.xl,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 25,
+    },
+    sheetHandle: {
+        width: 40,
+        height: 5,
+        backgroundColor: COLORS.surfaceSecondary,
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    modalHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 25,
     },
     modalTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: '#333',
-        textAlign: 'center',
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textPrimary,
+    },
+    deleteBtn: {
+        padding: 5,
+    },
+    inputWrap: {
+        marginBottom: 16,
+    },
+    inputLabel: {
+        fontSize: 11,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textTertiary,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     input: {
-        backgroundColor: '#f9f9f9',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#eee',
-        fontSize: 16,
+        backgroundColor: COLORS.surfaceSecondary,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: 14,
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     priceInputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f9f9f9',
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#eee',
-        paddingLeft: 15,
+        backgroundColor: COLORS.surfaceSecondary,
+        borderRadius: BORDER_RADIUS.lg,
+        paddingLeft: 14,
     },
     currencyPrefix: {
         fontSize: 16,
-        color: '#666',
-        marginRight: 5,
+        color: COLORS.primary,
+        fontWeight: FONT_WEIGHTS.black,
+    },
+    selector: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceSecondary,
+        padding: 14,
+        borderRadius: BORDER_RADIUS.lg,
+    },
+    selectorText: {
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     modalButtons: {
         flexDirection: 'row',
@@ -423,90 +554,70 @@ const styles = StyleSheet.create({
     },
     modalBtn: {
         flex: 1,
-        padding: 15,
-        borderRadius: 10,
+        height: 55,
+        borderRadius: BORDER_RADIUS.lg,
+        justifyContent: 'center',
         alignItems: 'center',
     },
     cancelBtn: {
         marginRight: 10,
-        backgroundColor: '#f1f1f1',
+        backgroundColor: COLORS.surfaceSecondary,
     },
     saveBtn: {
         marginLeft: 10,
-        backgroundColor: '#2196F3',
+        backgroundColor: COLORS.primary,
     },
     cancelBtnText: {
-        color: '#666',
-        fontWeight: 'bold',
+        color: COLORS.textSecondary,
+        fontWeight: FONT_WEIGHTS.bold,
+        fontSize: 15,
     },
     saveBtnText: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontWeight: FONT_WEIGHTS.black,
+        fontSize: 15,
     },
-    label: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#555',
-        marginBottom: 8,
-        marginTop: 10
+    bottomSheetOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
     },
-    selector: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#f9f9f9',
-        borderRadius: 10,
-        padding: 15,
-        borderWidth: 1,
-        borderColor: '#eee',
-    },
-    selectorText: {
-        fontSize: 16,
-        color: '#333',
-    },
-    sheet: {
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
-        padding: 20,
+    bottomSheet: {
+        backgroundColor: COLORS.surface,
+        borderTopLeftRadius: BORDER_RADIUS.xl * 1.5,
+        borderTopRightRadius: BORDER_RADIUS.xl * 1.5,
+        padding: SPACING.xl,
+        paddingBottom: Platform.OS === 'ios' ? 50 : 30,
         maxHeight: '70%',
     },
-    sheetHandle: {
-        width: 40,
-        height: 5,
-        backgroundColor: '#e0e0e0',
-        borderRadius: 3,
-        alignSelf: 'center',
-        marginBottom: 15,
-    },
     sheetTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 19,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textPrimary,
         marginBottom: 20,
-        color: '#333',
         textAlign: 'center',
     },
-    option: {
+    optionItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f1f1',
+        paddingVertical: 16,
+        paddingHorizontal: 12,
+        borderRadius: BORDER_RADIUS.lg,
+        marginBottom: 4,
     },
     optionSelected: {
-        backgroundColor: '#f0f7ff',
-        paddingHorizontal: 10,
-        borderRadius: 10,
+        backgroundColor: COLORS.primary + '10',
     },
     optionText: {
         fontSize: 16,
-        color: '#444',
+        color: COLORS.textPrimary,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     optionTextSelected: {
-        color: '#2196F3',
-        fontWeight: 'bold',
-    }
+        color: COLORS.primary,
+        fontWeight: FONT_WEIGHTS.bold,
+    },
 });
 
 export default ProductosScreen;

@@ -24,7 +24,10 @@ const CONFIG = {
 export const getBackendUrl = async () => {
   try {
     const savedUrl = await SecureStore.getItemAsync('custom_backend_url');
-    return savedUrl || DEFAULT_URL;
+    if (savedUrl && savedUrl.trim() !== '') {
+      return savedUrl;
+    }
+    return DEFAULT_URL;
   } catch (error) {
     return DEFAULT_URL;
   }
@@ -34,9 +37,10 @@ export const saveBackendUrl = async (url) => {
   await SecureStore.setItemAsync('custom_backend_url', url);
 };
 
-const getConfig = () => {
+export const getBaseConfig = () => {
   const env = 'development';
   return CONFIG[env];
 };
 
-export default getConfig();
+const config = getBaseConfig();
+export default config;

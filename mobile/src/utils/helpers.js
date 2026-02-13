@@ -6,15 +6,36 @@ export const formatCurrency = (amount) => {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
+    maximumFractionDigits: 0,
   }).format(amount);
 };
 
 export const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('es-CO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  if (!date) return 'Sin fecha';
+
+  try {
+    // Basic normalization for SQLite dates (YYYY-MM-DD HH:MM:SS) 
+    // replacing space with T for valid ISO parsing if needed
+    const normalizedDate = typeof date === 'string' && !date.includes('T')
+      ? date.replace(' ', 'T')
+      : date;
+
+    const d = new Date(normalizedDate);
+
+    if (isNaN(d.getTime())) {
+      console.warn('Invalid date format:', date);
+      return 'Fecha inválida';
+    }
+
+    return d.toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Error fecha';
+  }
 };
 
 export const getDaysUntilDate = (targetDate) => {

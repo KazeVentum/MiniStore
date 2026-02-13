@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, TextInput, Platform, SafeAreaView } from 'react-native';
 import { processAutoSync } from '../services/network';
 import { getBackendUrl, saveBackendUrl } from '../services/config';
+import { localApi } from '../services/api';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, FONT_WEIGHTS } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 
 const ConfigScreen = ({ navigation }) => {
+    const { isTablet, scaleFont } = useResponsive();
     const [syncing, setSyncing] = useState(false);
     const [backendUrl, setBackendUrl] = useState('');
     const [isSavingUrl, setIsSavingUrl] = useState(false);
+    const [isTestingUrl, setIsTestingUrl] = useState(false);
 
     useEffect(() => {
         loadConfig();
@@ -29,6 +35,18 @@ const ConfigScreen = ({ navigation }) => {
         }
     };
 
+    const handleTestConnection = async () => {
+        setIsTestingUrl(true);
+        const isOk = await localApi.testConnection();
+        setIsTestingUrl(false);
+
+        if (isOk) {
+            Alert.alert('Conexión Exitosa', 'El servidor local está respondiendo correctamente. ✅');
+        } else {
+            Alert.alert('Error de Conexión', 'No se pudo contactar al servidor. Asegúrate de que la IP sea correcta y que tu PC esté en la misma red Wi-Fi. ❌');
+        }
+    };
+
     const handleSyncPedidos = async () => {
         setSyncing(true);
         try {
@@ -44,320 +62,302 @@ const ConfigScreen = ({ navigation }) => {
     const options = [
         {
             title: 'Sincronización Manual',
-            subtitle: 'Forzar descarga de datos desde Supabase',
-            icon: '🔄',
+            subtitle: 'Descarga masiva desde Supabase',
+            icon: 'database-sync-outline',
             onPress: () => navigation.navigate('Sync'),
-            color: '#4dabf7'
+            color: COLORS.primary
         },
         {
-            title: 'Subir Pedidos Pendientes',
-            subtitle: 'Enviar ventas locales a la nube ahora',
-            icon: '☁️',
+            title: 'Subir Pendientes',
+            subtitle: 'Enviar ventas locales a la nube',
+            icon: 'cloud-upload-outline',
             onPress: handleSyncPedidos,
-            color: '#40c057',
+            color: COLORS.success,
             isLoading: syncing
         },
         {
-            title: 'Test Supabase',
-            subtitle: 'Verificar conexión con la nube',
-            icon: '🧪',
+            title: 'Test Cloud',
+            subtitle: 'Verificar conexión Supabase',
+            icon: 'cloud-check-outline',
             onPress: () => navigation.navigate('SupabaseTest'),
-            color: '#2196F3'
+            color: COLORS.secondary
         },
         {
-            title: 'Test SQLite Local',
-            subtitle: 'Verificar base de datos interna',
-            icon: '💾',
+            title: 'Test Interno',
+            subtitle: 'Verificar SQLite local',
+            icon: 'database-outline',
             onPress: () => navigation.navigate('SqliteTest'),
-            color: '#673AB7'
+            color: COLORS.textSecondary
         }
     ];
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={{ paddingBottom: 110 }}
-        >
-            <View style={styles.header}>
-                <Text style={styles.title}>Configuración</Text>
-                <Text style={styles.subtitle}>Herramientas del Sistema</Text>
-            </View>
-
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Servidor Local (Backend)</Text>
-                <View style={styles.urlCard}>
-                    <Text style={styles.label}>URL del API:</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={backendUrl}
-                        onChangeText={setBackendUrl}
-                        placeholder="http://192.168.1.XX:3000/api"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                    />
-                    <TouchableOpacity 
-                        style={styles.saveButton} 
-                        onPress={handleSaveUrl}
-                        disabled={isSavingUrl}
-                    >
-                        {isSavingUrl ? (
-                            <ActivityIndicator color="#fff" size="small" />
-                        ) : (
-                            <Text style={styles.saveButtonText}>Guardar URL</Text>
-                        )}
-                    </TouchableOpacity>
-                    <Text style={styles.helpText}>
-                        Asegúrate de que tu celular y PC estén en el mismo Wi-Fi.
-                    </Text>
+        <SafeAreaView style={styles.safeContainer}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={{ paddingBottom: 120 }}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.header}>
+                    <Text style={styles.title}>Configuración</Text>
+                    <Text style={styles.headerSubtitle}>Herramientas del Sistema</Text>
                 </View>
 
-                <Text style={styles.sectionTitle}>Acciones</Text>
-                {options.map((item, index) => (
-                    <TouchableOpacity
-                        key={index}
-                        style={styles.card}
-                        onPress={item.onPress}
-                    >
-                        <View style={[styles.iconContainer, { backgroundColor: item.color + '15' }]}>
-                            <Text style={styles.icon}>{item.icon}</Text>
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Servidor Local</Text>
+                    <View style={[styles.urlCard, SHADOWS.soft]}>
+                        <View style={styles.inputHeader}>
+                            <MaterialCommunityIcons name="server-network" size={18} color={COLORS.primary} />
+                            <Text style={styles.inputLabel}>Endpoint API</Text>
                         </View>
-                        <View style={styles.textContainer}>
-                            <Text style={styles.cardTitle}>{item.title}</Text>
-                            <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-                        </View>
-                        {item.isLoading ? (
-                            <ActivityIndicator size="small" color={item.color} />
-                        ) : (
-                            <Text style={styles.arrow}>›</Text>
-                        )}
-                    </TouchableOpacity>
-                ))}
-            </View>
+                        <TextInput
+                            style={styles.input}
+                            value={backendUrl}
+                            onChangeText={setBackendUrl}
+                            placeholder="http://192.168.1.XX:3000/api"
+                            placeholderTextColor={COLORS.textTertiary}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        <View style={styles.buttonRow}>
+                            <TouchableOpacity
+                                style={[styles.btn, styles.saveBtn, isSavingUrl && styles.btnDisabled]}
+                                onPress={handleSaveUrl}
+                                disabled={isSavingUrl}
+                            >
+                                {isSavingUrl ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Guardar</Text>
+                                )}
+                            </TouchableOpacity>
 
-            <View style={styles.footer}>
-                <Text style={styles.version}>MiniStore Mobile v1.2.1</Text>
-                <Text style={styles.legal}>Desarrollado con ❤️ para Bisutería App</Text>
-            </View>
-        </ScrollView>
+                            <TouchableOpacity
+                                style={[styles.btn, styles.testBtn, isTestingUrl && styles.btnDisabled]}
+                                onPress={handleTestConnection}
+                                disabled={isTestingUrl}
+                            >
+                                {isTestingUrl ? (
+                                    <ActivityIndicator color={COLORS.primary} size="small" />
+                                ) : (
+                                    <Text style={styles.testBtnText}>Probar</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.tipBox}>
+                            <MaterialCommunityIcons name="information-outline" size={14} color={COLORS.textTertiary} />
+                            <Text style={styles.helpText}>
+                                Asegúrate de estar en la misma red Wi-Fi para usar el servidor local.
+                            </Text>
+                        </View>
+                    </View>
+
+                    <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
+                    <View style={styles.optionsGrid}>
+                        {options.map((item, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                style={[styles.optionCard, SHADOWS.soft]}
+                                onPress={item.onPress}
+                                activeOpacity={0.7}
+                            >
+                                <View style={[styles.iconBox, { backgroundColor: item.color + '15' }]}>
+                                    <MaterialCommunityIcons name={item.icon} size={26} color={item.color} />
+                                </View>
+                                <View style={styles.optionInfo}>
+                                    <Text style={styles.optionTitle}>{item.title}</Text>
+                                    <Text style={styles.optionSubtitle}>{item.subtitle}</Text>
+                                </View>
+                                {item.isLoading ? (
+                                    <ActivityIndicator size="small" color={item.color} />
+                                ) : (
+                                    <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.surfaceSecondary} />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                <View style={styles.footer}>
+                    <View style={styles.logoBadge}>
+                        <MaterialCommunityIcons name="lightning-bolt" size={20} color={COLORS.primary} />
+                        <Text style={styles.version}>MINISTORE v1.2.5</Text>
+                    </View>
+                    <Text style={styles.legal}>Lina Edition • 2026</Text>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    safeContainer: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+    },
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
     },
     header: {
-        padding: 30,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        padding: SPACING.xl,
+        paddingTop: 30,
+        backgroundColor: COLORS.surface,
+        borderBottomLeftRadius: BORDER_RADIUS.xl,
+        borderBottomRightRadius: BORDER_RADIUS.xl,
+        ...SHADOWS.soft,
     },
     title: {
         fontSize: 28,
-        fontWeight: 'bold',
-        color: '#2d3436',
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textPrimary,
     },
-    subtitle: {
+    headerSubtitle: {
         fontSize: 14,
-        color: '#636e72',
-        marginTop: 5,
+        color: COLORS.textSecondary,
+        marginTop: 4,
+        fontWeight: FONT_WEIGHTS.medium,
     },
     section: {
-        padding: 20,
+        padding: SPACING.lg,
     },
     sectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#636e72',
-        marginBottom: 10,
-        marginLeft: 5,
+        fontSize: 11,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textTertiary,
+        marginBottom: 12,
+        marginLeft: 4,
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: 1.5,
     },
     urlCard: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 25,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.xl,
+        padding: SPACING.lg,
+        marginBottom: SPACING.xl,
     },
-    label: {
-        fontSize: 12,
-        color: '#636e72',
+    inputHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: 8,
     },
-    input: {
-        backgroundColor: '#f1f3f5',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 14,
-        color: '#2d3436',
-        borderWidth: 1,
-        borderColor: '#e9ecef',
-        marginBottom: 12,
+    inputLabel: {
+        fontSize: 12,
+        fontWeight: FONT_WEIGHTS.bold,
+        color: COLORS.textSecondary,
+        marginLeft: 8,
     },
-    saveButton: {
-        backgroundColor: '#228be6',
-        padding: 12,
-        borderRadius: 8,
+    input: {
+        backgroundColor: COLORS.surfaceSecondary,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: 14,
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        fontWeight: FONT_WEIGHTS.medium,
+        marginBottom: 16,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    btn: {
+        flex: 1,
+        height: 48,
+        borderRadius: BORDER_RADIUS.lg,
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    saveButtonText: {
+    saveBtn: {
+        backgroundColor: COLORS.primary,
+    },
+    testBtn: {
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderColor: COLORS.primary,
+    },
+    btnDisabled: {
+        opacity: 0.6,
+    },
+    saveBtnText: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontWeight: FONT_WEIGHTS.black,
         fontSize: 14,
+    },
+    testBtnText: {
+        color: COLORS.primary,
+        fontWeight: FONT_WEIGHTS.black,
+        fontSize: 14,
+    },
+    tipBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.surfaceSecondary,
     },
     helpText: {
         fontSize: 11,
-        color: '#adb5bd',
-        marginTop: 10,
-        textAlign: 'center',
+        color: COLORS.textTertiary,
+        marginLeft: 8,
+        flex: 1,
+        fontWeight: FONT_WEIGHTS.medium,
     },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
+    optionsGrid: {
+        gap: 10,
+    },
+    optionCard: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
     },
-    iconContainer: {
+    iconBox: {
         width: 48,
         height: 48,
-        borderRadius: 12,
+        borderRadius: BORDER_RADIUS.md,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
     },
-    icon: {
-        fontSize: 24,
-    },
-    textContainer: {
+    optionInfo: {
         flex: 1,
     },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2d3436',
+    optionTitle: {
+        fontSize: 15,
+        fontWeight: FONT_WEIGHTS.bold,
+        color: COLORS.textPrimary,
     },
-    cardSubtitle: {
+    optionSubtitle: {
         fontSize: 12,
-        color: '#636e72',
+        color: COLORS.textTertiary,
         marginTop: 2,
-    },
-    arrow: {
-        fontSize: 20,
-        color: '#b2bec3',
-        fontWeight: 'bold',
+        fontWeight: FONT_WEIGHTS.medium,
     },
     footer: {
         padding: 40,
         alignItems: 'center',
     },
-    version: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#b2bec3',
-    },
-    legal: {
-        fontSize: 10,
-        color: '#dfe6e9',
-        marginTop: 5,
-    }
-});
-
-export default ConfigScreen;
-
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f9fa',
-    },
-    header: {
-        padding: 30,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#2d3436',
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#636e72',
-        marginTop: 5,
-    },
-    section: {
-        padding: 20,
-    },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
+    logoBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    icon: {
-        fontSize: 24,
-    },
-    textContainer: {
-        flex: 1,
-    },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2d3436',
-    },
-    cardSubtitle: {
-        fontSize: 12,
-        color: '#636e72',
-        marginTop: 2,
-    },
-    arrow: {
-        fontSize: 20,
-        color: '#b2bec3',
-        fontWeight: 'bold',
-    },
-    footer: {
-        padding: 40,
-        alignItems: 'center',
+        backgroundColor: COLORS.surfaceSecondary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginBottom: 10,
     },
     version: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#b2bec3',
+        fontSize: 10,
+        fontWeight: FONT_WEIGHTS.black,
+        color: COLORS.textSecondary,
+        marginLeft: 6,
+        letterSpacing: 1,
     },
     legal: {
-        fontSize: 10,
-        color: '#dfe6e9',
-        marginTop: 5,
+        fontSize: 11,
+        color: COLORS.textTertiary,
+        fontWeight: FONT_WEIGHTS.medium,
     }
 });
 

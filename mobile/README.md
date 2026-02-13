@@ -109,9 +109,12 @@ npm run lint       # Ejecutar ESLint
 
 ## 📱 Características
 
-- ✅ Creación de pedidos offline
+- ✅ Rediseño estético "Dark Pink Luxury" (Modo Oscuro Premium)
+- ✅ Módulo de Analítica de Ventas (Resumen Mensual)
+- ✅ Gestión de Catálogo: Borrado lógico de productos y clientes
+- ✅ Buscador de clientes inteligente con avatares dinámicos
+- ✅ Creación de pedidos offline con auto-scroll optimizado para teclado
 - ✅ Sincronización automática con Supabase
-- ✅ Fallback a backend local (localhost:3000)
 - ✅ Notificaciones de vencimiento de pedidos
 - ✅ Caché local de productos y clientes
 - ✅ Indicadores visuales de estado de conexión
@@ -120,17 +123,16 @@ npm run lint       # Ejecutar ESLint
 
 - **Framework:** Expo SDK 50+
 - **Platform:** React Native 0.73+
+- **Aesthetics:** Dark Pink Luxury UI
 - **Database:** SQLite (local) + Supabase (cloud)
 - **Navigation:** React Navigation 6
 - **State:** Zustand
-- **Data Fetching:** TanStack Query
-- **Notifications:** Expo Notifications
 
 ## 📚 Documentación Adicional
 
 - **Roadmap:** Ver `mobile-roadmap.md` para plan de desarrollo completo
 - **Historial:** Ver `mobile-agent-history.md` para historial de desarrollo
-- **Contexto General:** Ver `../AGENTS.md` para contexto del proyecto completo
+- **Walkthrough Actual:** Ver `../.gemini/antigravity/brain/f47fe472-5092-4799-beae-ff3fe366ddd2/walkthrough.md` para ver el último rediseño.
 
 ## 🔗 Enlaces Útiles
 
@@ -141,11 +143,11 @@ npm run lint       # Ejecutar ESLint
 ## ⚠️ Notas Importantes
 
 - Solo soporta Android en este momento
-- Requiere conexión a backend local (localhost:3000) o Supabase
+- Requiere conexión a Supabase (Sync activa)
 - Los datos offline se sincronizan automáticamente al detectar conexión
-- Notificaciones funcionan offline
+- Soporte para APK mediante EAS Build (`eas build -p android --profile preview`)
 
 ---
 
-**Versión:** 1.0.0  
-**Última Actualización:** 2026-02-03
+**Versión:** 1.1.0  
+**Última Actualización:** 2026-02-13
