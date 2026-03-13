@@ -2,127 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ */
+/* Base                                                                 */
+/* ------------------------------------------------------------------ */
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  @apply transition-colors duration-300 ease-in-out;
+  @apply bg-surface-page dark:bg-dark-bg text-text-primary dark:text-slate-100 transition-colors duration-300;
 }
+
+/* ------------------------------------------------------------------ */
+/* Utility classes                                                      */
+/* ------------------------------------------------------------------ */
 
 @layer utilities {
-  .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+  /* Standard card surface */
+  .card {
+    @apply bg-surface-card dark:bg-dark-surface border border-surface-border dark:border-dark-border rounded-2xl shadow-sm;
   }
 
-  .glass-dark {
-    @apply dark:bg-slate-900/60 dark:backdrop-blur-2xl dark:border-white/10 dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+  /* Subtle hover lift used across list cards */
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-md;
   }
 
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/50 shadow-sm hover:shadow-2xl hover:shadow-rosa-primario/10 transition-all duration-500 hover:-translate-y-1;
+  /* Sidebar nav link — active state */
+  .nav-active {
+    @apply bg-brand-default text-white shadow-lg;
   }
 
-  .glass-card-dark {
-    @apply dark:bg-gray-900/40 dark:backdrop-blur-xl dark:border-white/5 dark:hover:bg-gray-900/60 dark:hover:border-rosa-primario/20 dark:shadow-2xl dark:shadow-black/20;
+  /* Sidebar nav link — inactive state */
+  .nav-inactive {
+    @apply text-text-secondary dark:text-slate-400
+           hover:text-brand-default dark:hover:text-dark-accent
+           hover:bg-brand-light dark:hover:bg-white/5;
   }
 
+  /* Page-level heading gradient (indigo → violet) */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-rosa-secundario via-rosa-oscuro to-purple-700 dark:from-rosa-primario dark:via-rosa-secundario dark:to-purple-400;
+    @apply bg-clip-text text-transparent
+           bg-gradient-to-r from-brand-default to-violet-600
+           dark:from-dark-accent dark:to-violet-400;
   }
 
-  .premium-shadow {
-    @apply shadow-[0_20px_50px_rgba(236,72,153,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)];
-  }
-
-  .glow-rosa {
-    @apply shadow-[0_0_20px_rgba(236,72,153,0.3)] dark:shadow-[0_0_30px_rgba(236,72,153,0.15)];
+  /* Loading spinner color shorthand */
+  .spinner {
+    @apply border-brand-soft border-t-brand-default;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+/* ------------------------------------------------------------------ */
+/* Scrollbar                                                            */
+/* ------------------------------------------------------------------ */
 
-::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-900;
-}
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { @apply bg-surface-muted dark:bg-dark-bg; }
+::-webkit-scrollbar-thumb  { @apply bg-brand-soft dark:bg-dark-border rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-brand-default; }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-rosa-primario/50 dark:bg-rosa-primario/70 rounded-full;
-}
+/* Modal inner scroll area */
+.modal-content::-webkit-scrollbar       { width: 4px; }
+.modal-content::-webkit-scrollbar-track { background: transparent; }
+.modal-content::-webkit-scrollbar-thumb { @apply bg-brand-soft rounded-full; }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-rosa-primario dark:bg-rosa-primario;
-}
+/* ------------------------------------------------------------------ */
+/* Recharts — dark mode overrides                                       */
+/* ------------------------------------------------------------------ */
 
-/* Recharts dark mode styling */
-.dark .recharts-text {
-  fill: #f3f4f6 !important;
-  /* slate-100 */
-  font-weight: 500;
+.dark .recharts-text,
+.dark .recharts-layer text {
+  fill: #CBD5E1 !important; /* slate-300 */
 }
 
 .dark .recharts-cartesian-axis-line,
 .dark .recharts-cartesian-axis-tick-line {
-  stroke: rgba(255, 255, 255, 0.2) !important;
+  stroke: rgba(255, 255, 255, 0.15) !important;
 }
 
 .dark .recharts-cartesian-grid-horizontal line,
 .dark .recharts-cartesian-grid-vertical line {
-  stroke: rgba(255, 255, 255, 0.1) !important;
+  stroke: rgba(255, 255, 255, 0.07) !important;
 }
 
 .dark .recharts-default-tooltip {
-  background-color: #0f172a !important;
-  /* slate-900 */
+  background-color: #1E293B !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 12px !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4) !important;
 }
 
-.dark .recharts-tooltip-label {
-  color: #f3f4f6 !important;
-  font-weight: 700 !important;
-  margin-bottom: 4px !important;
-}
-
-.dark .recharts-layer text {
-  fill: #f3f4f6 !important;
-}
-
+.dark .recharts-tooltip-label,
 .dark .recharts-tooltip-item {
-  color: #f3f4f6 !important;
+  color: #E2E8F0 !important;
 }
 
-.dark .recharts-tooltip-wrapper {
-  outline: none;
-}
-
-/* Modal scrollbar styling */
-.modal-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.modal-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.modal-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 182, 193, 0.5);
-  border-radius: 10px;
-}
-
-.modal-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 182, 193, 0.8);
-}
-
-.dark .modal-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 182, 193, 0.7);
-}
-
-.dark .modal-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 182, 193, 0.9);
-}
+.dark .recharts-tooltip-wrapper { outline: none; }
