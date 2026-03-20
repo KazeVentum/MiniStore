@@ -1,136 +1,100 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { sileo, Toaster } from 'sileo';
+import HomePage from './pages/HomePage.jsx';
+import ProductsPage from './pages/ProductsPage.jsx';
+import OrdersPage from './pages/OrdersPage.jsx';
+import CustomersPage from './pages/CustomersPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import { Package, ShoppingCart, Users, Home, LogOut, User } from 'lucide-react';
+import { isAuthenticated, logout } from './utils/auth.js';
 
-// -- Page components --
-import Dashboard from './components/Dashboard';
-import Products from './components/Products';
-import Orders from './components/Orders';
-import NewOrder from './components/NewOrder';
-import Customers from './components/Customers';
-import SalesSummary from './components/SalesSummary';
+export { sileo };
 
-import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Menu } from 'lucide-react';
-import ThemeToggle from './components/ui/theme-toggle';
-import { cn } from './lib/utils';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NavLink
-//
-// React concept: Component composition — a small, reusable component that
-// receives props (to, icon, children) and builds consistent nav items.
-//
-// useLocation is a React Router hook that returns the current URL object.
-// We compare pathname to decide whether this link is "active".
-// ─────────────────────────────────────────────────────────────────────────────
-const NavLink = ({ to, icon: Icon, children }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-
-  return (
-    <Link
-      to={to}
-      className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200',
-        isActive ? 'nav-active' : 'nav-inactive'
-      )}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      {children}
-    </Link>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// AppContent
-//
-// React concept: This component exists only because useLocation() must be
-// called inside the <Router> context. We split "App" into two layers:
-//   - App          → provides the Router context
-//   - AppContent   → consumes the Router context via hooks
-// ─────────────────────────────────────────────────────────────────────────────
-const AppContent = () => {
-  return (
-    <div className="min-h-screen bg-surface-page dark:bg-dark-bg text-text-primary dark:text-slate-100 font-sans">
-      <div className="flex h-screen overflow-hidden">
-
-        {/* ── Sidebar (desktop only) ── */}
-        <aside className="w-64 hidden md:flex flex-col bg-surface-card dark:bg-dark-surface border-r border-surface-border dark:border-dark-border shrink-0">
-
-          {/* Logo */}
-          <div className="px-6 py-6 border-b border-surface-border dark:border-dark-border">
-            <h1 className="text-xl font-bold text-gradient tracking-tight">
-              BisouStore
-            </h1>
-            <p className="text-xs text-text-muted mt-0.5">Jewelry E-commerce</p>
-          </div>
-
-          {/* Navigation links */}
-          <nav className="flex-1 p-4 space-y-1">
-            <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
-            <NavLink to="/orders" icon={ShoppingCart}>Orders</NavLink>
-            <NavLink to="/summary" icon={BarChart3}>Sales Summary</NavLink>
-            <NavLink to="/customers" icon={Users}>Customers</NavLink>
-            <NavLink to="/products" icon={Package}>Products</NavLink>
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-surface-border dark:border-dark-border">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-xs text-text-muted">v2.1.0 — academic</span>
-              <ThemeToggle />
-            </div>
-          </div>
-        </aside>
-
-        {/* ── Main content area ── */}
-        <main className="flex-1 overflow-y-auto">
-
-          {/* Mobile top bar (visible only on small screens) */}
-          <div className="md:hidden flex justify-between items-center px-4 py-3 bg-surface-card dark:bg-dark-surface border-b border-surface-border dark:border-dark-border">
-            <h1 className="text-lg font-bold text-gradient">BisouStore</h1>
-            <div className="flex gap-2">
-              <ThemeToggle />
-              <button className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-white/10 transition-colors">
-                <Menu className="h-5 w-5 text-text-secondary" />
-              </button>
-            </div>
-          </div>
-
-          {/* Page content */}
-          <div className="p-6 md:p-8 max-w-screen-2xl mx-auto animate-fade-in">
-            {/*
-              React concept: <Routes> renders only the first <Route> that
-              matches the current URL. Each <Route> maps a path to a component.
-            */}
-            <Routes>
-              <Route path="/"                       element={<Dashboard />} />
-              <Route path="/products"               element={<Products />} />
-              <Route path="/orders"                 element={<Orders />} />
-              <Route path="/orders/new"             element={<NewOrder />} />
-              <Route path="/orders/edit/:id"        element={<NewOrder />} />
-              <Route path="/summary"                element={<SalesSummary />} />
-              <Route path="/customers"              element={<Customers />} />
-            </Routes>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// App — root component
-//
-// React concept: <Router> (BrowserRouter) is a context provider. It makes
-// routing state (current URL, history) available to all nested components
-// via React context, accessed through hooks like useLocation, useNavigate,
-// useParams.
-// ─────────────────────────────────────────────────────────────────────────────
 function App() {
+  const [user, setUser] = useState(isAuthenticated());
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+  };
+
+  if (!user) {
+    return (
+      <>
+        <Toaster position="center" />
+        <LoginPage onLogin={handleLogin} />
+      </>
+    );
+  }
+
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <>
+      <Toaster position="center" />
+      <Router>
+        <div className="min-h-screen bg-slate-900">
+          <nav className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">M</span>
+                  </div>
+                  <span className="text-xl font-bold text-white">MiniStore</span>
+                </div>
+                
+                <div className="flex items-center space-x-1">
+                  <a href="/" className="nav-link">
+                    <Home className="w-4 h-4" />
+                    Home
+                  </a>
+                  <a href="/products" className="nav-link">
+                    <Package className="w-4 h-4" />
+                    Products
+                  </a>
+                  <a href="/orders" className="nav-link">
+                    <ShoppingCart className="w-4 h-4" />
+                    Orders
+                  </a>
+                  <a href="/customers" className="nav-link">
+                    <Users className="w-4 h-4" />
+                    Customers
+                  </a>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 text-slate-300">
+                    <User className="w-5 h-5" />
+                    <span className="font-medium">{user.username}</span>
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm">Logout</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </nav>
+          
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </>
   );
 }
 

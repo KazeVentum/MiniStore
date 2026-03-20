@@ -1,6 +1,5 @@
 -- ============================================
--- BASE DE DATOS: Sistema de Ventas - Bisutería y Artesanías
--- ADAPTADO PARA POSTGRESQL (SUPABASE)
+-- BASE DE DATOS: Sistema de Ventas -
 -- ============================================
 
 -- Tipos ENUM personalizados

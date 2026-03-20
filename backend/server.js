@@ -17,7 +17,7 @@ app.use('/api/common', require('./src/routes/common'));
 app.use('/api/clientes', require('./src/routes/clientes'));
 
 app.get('/', (req, res) => {
-    res.send('Bisutería API is running');
+    res.send('BisouStore API is running');
 });
 
 // Start server

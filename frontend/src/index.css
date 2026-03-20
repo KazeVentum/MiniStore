@@ -2,9 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ------------------------------------------------------------------ */
-/* Base                                                                 */
-/* ------------------------------------------------------------------ */
+@layer components {
+  .nav-link {
+    @apply flex items-center space-x-2 px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all duration-200 font-medium;
+  }
+}
 
 body {
   margin: 0;
@@ -12,92 +14,66 @@ body {
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  @apply bg-surface-page dark:bg-dark-bg text-text-primary dark:text-slate-100 transition-colors duration-300;
+  background-color: #0f172a;
+  color: #f1f5f9;
 }
 
-/* ------------------------------------------------------------------ */
-/* Utility classes                                                      */
-/* ------------------------------------------------------------------ */
+* {
+  box-sizing: border-box;
+}
 
-@layer utilities {
-  /* Standard card surface */
-  .card {
-    @apply bg-surface-card dark:bg-dark-surface border border-surface-border dark:border-dark-border rounded-2xl shadow-sm;
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0px 1000px #0f172a inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+select option {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.5s;
+}
+
+input:focus:invalid,
+textarea:focus:invalid {
+  animation: shake 0.3s;
+  border-color: #ef4444;
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(-100px);
   }
-
-  /* Subtle hover lift used across list cards */
-  .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-md;
+  50% {
+    transform: scale(1.05);
   }
-
-  /* Sidebar nav link — active state */
-  .nav-active {
-    @apply bg-brand-default text-white shadow-lg;
+  70% {
+    transform: scale(0.9);
   }
-
-  /* Sidebar nav link — inactive state */
-  .nav-inactive {
-    @apply text-text-secondary dark:text-slate-400
-           hover:text-brand-default dark:hover:text-dark-accent
-           hover:bg-brand-light dark:hover:bg-white/5;
-  }
-
-  /* Page-level heading gradient (indigo → violet) */
-  .text-gradient {
-    @apply bg-clip-text text-transparent
-           bg-gradient-to-r from-brand-default to-violet-600
-           dark:from-dark-accent dark:to-violet-400;
-  }
-
-  /* Loading spinner color shorthand */
-  .spinner {
-    @apply border-brand-soft border-t-brand-default;
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Scrollbar                                                            */
-/* ------------------------------------------------------------------ */
-
-::-webkit-scrollbar        { width: 6px; height: 6px; }
-::-webkit-scrollbar-track  { @apply bg-surface-muted dark:bg-dark-bg; }
-::-webkit-scrollbar-thumb  { @apply bg-brand-soft dark:bg-dark-border rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-brand-default; }
-
-/* Modal inner scroll area */
-.modal-content::-webkit-scrollbar       { width: 4px; }
-.modal-content::-webkit-scrollbar-track { background: transparent; }
-.modal-content::-webkit-scrollbar-thumb { @apply bg-brand-soft rounded-full; }
-
-/* ------------------------------------------------------------------ */
-/* Recharts — dark mode overrides                                       */
-/* ------------------------------------------------------------------ */
-
-.dark .recharts-text,
-.dark .recharts-layer text {
-  fill: #CBD5E1 !important; /* slate-300 */
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out;
 }
-
-.dark .recharts-cartesian-axis-line,
-.dark .recharts-cartesian-axis-tick-line {
-  stroke: rgba(255, 255, 255, 0.15) !important;
-}
-
-.dark .recharts-cartesian-grid-horizontal line,
-.dark .recharts-cartesian-grid-vertical line {
-  stroke: rgba(255, 255, 255, 0.07) !important;
-}
-
-.dark .recharts-default-tooltip {
-  background-color: #1E293B !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4) !important;
-}
-
-.dark .recharts-tooltip-label,
-.dark .recharts-tooltip-item {
-  color: #E2E8F0 !important;
-}
-
-.dark .recharts-tooltip-wrapper { outline: none; }

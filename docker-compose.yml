@@ -3,10 +3,8 @@ services:
     build: ./backend
     container_name: MiniStore_Backend
     restart: always
-    environment:
-      PORT: 3000
-      SUPABASE_URL: ${SUPABASE_URL}
-      SUPABASE_APIKEY: ${SUPABASE_APIKEY}
+    env_file:
+      - ./docker-compose.env
     ports:
       - "3000:3000"
     volumes:
