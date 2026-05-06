@@ -12,9 +12,8 @@ app.use(express.json());
 // Routes
 app.use('/api/productos', require('./src/routes/productos'));
 app.use('/api/pedidos', require('./src/routes/pedidos'));
-app.use('/api/reportes', require('./src/routes/reportes'));
-app.use('/api/common', require('./src/routes/common'));
 app.use('/api/clientes', require('./src/routes/clientes'));
+app.use('/api/usuarios', require('./src/routes/usuarios'));
 
 app.get('/', (req, res) => {
     res.send('BisouStore API is running');

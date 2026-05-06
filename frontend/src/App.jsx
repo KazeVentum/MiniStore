@@ -26,7 +26,7 @@ function App() {
   if (!user) {
     return (
       <>
-        <Toaster position="center" />
+        <Toaster position="bottom-center" theme="dark" />
         <LoginPage onLogin={handleLogin} />
       </>
     );
@@ -34,7 +34,7 @@ function App() {
 
   return (
     <>
-      <Toaster position="center" />
+      <Toaster position="bottom-center" theme="dark" />
       <Router>
         <div className="min-h-screen bg-slate-900">
           <nav className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
@@ -44,7 +44,7 @@ function App() {
                   <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">M</span>
                   </div>
-                  <span className="text-xl font-bold text-white">MiniStore</span>
+                  <span className="text-xl font-bold text-white">Ariel's Jewelry Store</span>
                 </div>
                 
                 <div className="flex items-center space-x-1">

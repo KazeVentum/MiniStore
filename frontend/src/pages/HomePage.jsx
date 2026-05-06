@@ -6,7 +6,7 @@ const HomePage = () => {
   return (
     <div className="space-y-12">
       <div className="text-center space-y-6 py-12">
-        <h1 className="text-5xl font-bold text-white">MiniStore</h1>
+        <h1 className="text-5xl font-bold text-white">Ariel's Jewelry Store</h1>
         <p className="text-xl text-slate-400 max-w-2xl mx-auto">
           Gestión de productos, pedidos y clientes
         </p>

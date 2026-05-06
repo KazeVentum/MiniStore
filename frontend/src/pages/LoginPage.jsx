@@ -18,7 +18,7 @@ const LoginPage = ({ onLogin }) => {
     
     if (!isLogin) {
       const validations = [
-        { label: '8-12 caracteres', test: value.length >= 8 && value.length <= 12 },
+        { label: 'Mínimo 8 caracteres', test: value.length >= 8 },
         { label: 'Mayúscula', test: /[A-Z]/.test(value) },
         { label: 'Minúscula', test: /[a-z]/.test(value) },
         { label: 'Número', test: /[0-9]/.test(value) },
@@ -28,7 +28,7 @@ const LoginPage = ({ onLogin }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
@@ -44,7 +44,7 @@ const LoginPage = ({ onLogin }) => {
       }
 
       if (Object.keys(newErrors).length === 0) {
-        const result = authenticateUser(username, password);
+        const result = await authenticateUser(username, password);
         if (result.success) {
           sileo.success({
             title: '¡Bienvenido!',
@@ -72,7 +72,7 @@ const LoginPage = ({ onLogin }) => {
       }
 
       if (Object.keys(newErrors).length === 0) {
-        const result = registerUser(username, password);
+        const result = await registerUser(username, password);
         if (result.success) {
           sileo.success({
             title: 'Registro exitoso',
@@ -104,7 +104,7 @@ const LoginPage = ({ onLogin }) => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-600 rounded-2xl mb-4 shadow-lg shadow-orange-600/30">
             <span className="text-white font-bold text-2xl">M</span>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">MiniStore</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Ariel's Jewelry Store</h1>
           <p className="text-slate-400">
             {isLogin ? 'Inicia sesión para continuar' : 'Crea tu cuenta'}
           </p>
