@@ -17,9 +17,7 @@ const makeHandler = (setState, setErrors) => (e) => {
   setErrors(prev => ({ ...prev, [name]: '' }));
 };
 
-// [Req 9 - Imágenes] ProductImage — renderiza <img src={...}> con fallback en onError
 const ProductImage = ({ src, alt }) => {
-  // [Req 5 - useState] error — controla si la imagen falló y muestra el fallback
   const [error, setError] = useState(false);
 
   if (src && !error) {
@@ -28,7 +26,7 @@ const ProductImage = ({ src, alt }) => {
         src={src}
         alt={alt}
         className="w-full h-full object-cover"
-        onError={() => setError(true)} // [Req 4 - Eventos] onError muestra ícono fallback si la imagen no carga
+        onError={() => setError(true)}
       />
     );
   }
@@ -40,8 +38,6 @@ const ProductImage = ({ src, alt }) => {
   );
 };
 
-// [Req 3 - Componentes] SortableProduct recibe props del padre: onEdit, onDelete, onSave, onCancel, isEditing
-// [Req 12 - Drag and Drop] useSortable convierte cada producto en un ítem arrastrable
 const SortableProduct = ({ product, isEditing, editFormData, onEditChange, onSave, onEdit, onDelete, onCancel }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id });
 
@@ -134,7 +130,6 @@ const SortableProduct = ({ product, isEditing, editFormData, onEditChange, onSav
 };
 
 const ProductsPage = () => {
-  // [Req 5 - useState] products, loading, search, onlyFeatured, formData, editProduct, editFormData, errors
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -151,16 +146,13 @@ const ProductsPage = () => {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  // [Req 6 - useEffect] Carga productos al montar el componente
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
     try {
-      // [Req 7 - Peticiones] GET /productos — obtiene lista de productos desde la API
       const { data } = await api.get('/productos');
-      // [Req 13 - LocalStorage] Lee orden personalizado guardado tras drag & drop
       const savedOrder = localStorage.getItem(STORAGE_KEY);
       if (savedOrder) {
         const order = JSON.parse(savedOrder);
@@ -183,14 +175,12 @@ const ProductsPage = () => {
     return newErrors;
   };
 
-  // [Req 4 - Eventos] onSubmit del formulario de crear producto
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formErrors = validate(formData);
     if (Object.keys(formErrors).length > 0) { setErrors(formErrors); return; }
 
     try {
-      // [Req 7 - Peticiones] POST /productos — crea un nuevo producto
       const { data } = await api.post('/productos', {
         name: formData.name,
         price: parseFloat(formData.price),
@@ -216,7 +206,6 @@ const ProductsPage = () => {
     if (Object.keys(formErrors).length > 0) { setEditErrors(formErrors); return; }
 
     try {
-      // [Req 7 - Peticiones] PUT /productos/:id — actualiza un producto existente
       const { data } = await api.put(`/productos/${editProduct.id}`, {
         name: editFormData.name,
         price: parseFloat(editFormData.price),
@@ -233,7 +222,6 @@ const ProductsPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // [Req 7 - Peticiones] DELETE /productos/:id — elimina un producto
       await api.delete(`/productos/${id}`);
       setProducts(prev => prev.filter(p => p.id !== id));
       sileo.error({ title: 'Producto eliminado', description: 'El producto fue eliminado' });
@@ -242,18 +230,15 @@ const ProductsPage = () => {
     }
   };
 
-  // [Req 12 - Drag and Drop] handleDragEnd calcula el nuevo orden con arrayMove
   const handleDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return;
     setProducts(prev => {
       const reordered = arrayMove(prev, prev.findIndex(p => p.id === active.id), prev.findIndex(p => p.id === over.id));
-      // [Req 13 - LocalStorage] Persiste el orden de productos para sobrevivir recargas
       localStorage.setItem(STORAGE_KEY, JSON.stringify(reordered.map(p => p.id)));
       return reordered;
     });
   };
 
-  // [Req 10 - Filtros] Búsqueda por nombre y toggle de solo destacados — filtrado en cliente sin petición extra
   const filtered = products
     .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
     .filter(p => !onlyFeatured || p.featured);
@@ -276,7 +261,6 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      {/* [Req 2 - Formularios] Formulario crear producto: nombre, precio, URL imagen, checkbox destacado */}
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
           <Plus className="w-5 h-5 mr-2 text-orange-500" />
@@ -380,11 +364,9 @@ const ProductsPage = () => {
             <p className="text-slate-500">{search ? 'Sin resultados' : 'No hay productos'}</p>
           </div>
         ) : (
-          {/* [Req 12 - Drag and Drop] DndContext y SortableContext envuelven la lista de productos */}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={filtered.map(p => p.id)} strategy={verticalListSortingStrategy}>
               <div>
-                {/* [Req 8 - key] key={product.id} en lista de productos */}
                 {filtered.map(product => (
                   <SortableProduct
                     key={product.id}
