@@ -23,7 +23,9 @@ export const validatePassword = (password) => {
 
 export const authenticateUser = async (username, password) => {
   try {
+    // [Req 7 - Peticiones] POST /usuarios/login — autenticación del usuario
     const { data } = await axios.post(`${API_URL}/usuarios/login`, { username, password });
+    // [Req 13 - LocalStorage] Guarda la sesión del usuario autenticado con clave 'currentUser'
     localStorage.setItem('currentUser', JSON.stringify({ username: data.username }));
     return { success: true, user: { username: data.username } };
   } catch (error) {
@@ -33,6 +35,7 @@ export const authenticateUser = async (username, password) => {
 
 export const registerUser = async (username, password) => {
   try {
+    // [Req 7 - Peticiones] POST /usuarios/register — registro de nuevo usuario
     await axios.post(`${API_URL}/usuarios/register`, { username, password });
     return { success: true };
   } catch (error) {
@@ -41,6 +44,7 @@ export const registerUser = async (username, password) => {
 };
 
 export const isAuthenticated = () => {
+  // [Req 13 - LocalStorage] Lee la sesión guardada para persistir el login entre recargas
   const user = localStorage.getItem('currentUser');
   return user ? JSON.parse(user) : null;
 };

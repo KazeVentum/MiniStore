@@ -6,6 +6,7 @@ import api from '../services/api.js';
 import { sileo } from 'sileo';
 
 const OrdersPage = () => {
+  // [Req 5 - useState] orders, products, customers, loading, search, formData, errors
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -15,12 +16,14 @@ const OrdersPage = () => {
   const [errors, setErrors] = useState({});
   const [search, setSearch] = useState('');
 
+  // [Req 6 - useEffect] Carga productos, pedidos y clientes al montar el componente
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
+      // [Req 7 - Peticiones] Promise.all: GET /productos, GET /pedidos, GET /clientes en paralelo
       const [prodRes, ordRes, clientRes] = await Promise.all([
         api.get('/productos'),
         api.get('/pedidos'),
@@ -50,12 +53,14 @@ const OrdersPage = () => {
     return newErrors;
   };
 
+  // [Req 4 - Eventos] onSubmit del formulario de crear pedido
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) { setErrors(formErrors); return; }
 
     try {
+      // [Req 7 - Peticiones] POST /pedidos — crea un nuevo pedido
       const { data } = await api.post('/pedidos', {
         id_producto: parseInt(formData.productId),
         quantity: parseInt(formData.quantity),
@@ -72,6 +77,7 @@ const OrdersPage = () => {
 
   const handleDelete = async (id) => {
     try {
+      // [Req 7 - Peticiones] DELETE /pedidos/:id — elimina un pedido
       await api.delete(`/pedidos/${id}`);
       setOrders(prev => prev.filter(o => o.id !== id));
       sileo.error({ title: 'Pedido eliminado', description: 'El pedido fue eliminado' });
@@ -111,6 +117,7 @@ const OrdersPage = () => {
         </div>
       </div>
 
+      {/* [Req 2 - Formularios] Formulario crear pedido: select producto, cantidad, select cliente, textarea notas */}
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
           <Plus className="w-5 h-5 mr-2 text-orange-500" />
@@ -126,6 +133,7 @@ const OrdersPage = () => {
               className={`w-full px-4 py-3 rounded-lg bg-slate-900 border ${errors.productId ? 'border-red-500' : 'border-slate-600'} text-white focus:border-orange-500 focus:outline-none transition-colors`}
             >
               <option value="">Seleccionar producto</option>
+              {/* [Req 8 - key] key={product.id} en el select de productos al crear pedido */}
               {products.map(product => (
                 <option key={product.id} value={product.id}>
                   {product.name} - {formatCOP(product.price)}
@@ -159,6 +167,7 @@ const OrdersPage = () => {
               className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-600 text-white focus:border-orange-500 focus:outline-none transition-colors"
             >
               <option value="">Sin cliente asignado</option>
+              {/* [Req 8 - key] key={customer.id} en el select de clientes al crear pedido */}
               {customers.map(customer => (
                 <option key={customer.id} value={customer.id}>
                   {customer.name} — {customer.email}
@@ -206,6 +215,8 @@ const OrdersPage = () => {
           </div>
         ) : (
           <div className="divide-y divide-slate-700">
+            {/* [Req 10 - Filtros] Búsqueda de pedidos por nombre de producto — filtrado en cliente */}
+            {/* [Req 8 - key] key={order.id} en lista de pedidos */}
             {orders.filter(o => o.product_name.toLowerCase().includes(search.toLowerCase())).map(order => {
               const customerName = getCustomerName(order);
               return (

@@ -12,8 +12,9 @@ const HomePage = () => {
         </p>
       </div>
 
+      {/* [Req 3 - Componentes] HomePage usa FeatureCard con props: icon, title, description, link */}
       <div className="grid md:grid-cols-3 gap-6">
-        <FeatureCard 
+        <FeatureCard
           icon={<Package className="w-8 h-8" />}
           title="Productos"
           description="Administra el catálogo de productos de la tienda"

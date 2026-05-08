@@ -12,12 +12,14 @@ import { isAuthenticated, logout } from './utils/auth.js';
 export { sileo };
 
 function App() {
+  // [Req 5 - useState] user — maneja la sesión activa del usuario
   const [user, setUser] = useState(isAuthenticated());
 
   const handleLogin = (userData) => {
     setUser(userData);
   };
 
+  // [Req 4 - Eventos] onClick en botón logout llama a handleLogout
   const handleLogout = () => {
     logout();
     setUser(null);
@@ -27,6 +29,7 @@ function App() {
     return (
       <>
         <Toaster position="bottom-center" theme="dark" />
+        {/* [Req 3 - Componentes] App pasa onLogin como prop a LoginPage; LoginPage llama onLogin(user) al autenticarse */}
         <LoginPage onLogin={handleLogin} />
       </>
     );
