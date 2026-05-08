@@ -5,6 +5,7 @@ import api from '../services/api.js';
 import { sileo } from 'sileo';
 
 const CustomersPage = () => {
+  // [Req 5 - useState] customers, loading, search, formData, errors
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -12,12 +13,14 @@ const CustomersPage = () => {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
   const [errors, setErrors] = useState({});
 
+  // [Req 6 - useEffect] Carga clientes al montar el componente
   useEffect(() => {
     fetchCustomers();
   }, []);
 
   const fetchCustomers = async () => {
     try {
+      // [Req 7 - Peticiones] GET /clientes — obtiene lista de clientes desde la API
       const { data } = await api.get('/clientes');
       setCustomers(data);
     } catch (error) {
@@ -27,6 +30,7 @@ const CustomersPage = () => {
     }
   };
 
+  // [Req 4 - Eventos] onChange en campos de formulario
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -42,12 +46,14 @@ const CustomersPage = () => {
     return newErrors;
   };
 
+  // [Req 4 - Eventos] onSubmit del formulario de crear cliente
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) { setErrors(formErrors); return; }
 
     try {
+      // [Req 7 - Peticiones] POST /clientes — registra un nuevo cliente
       const { data } = await api.post('/clientes', formData);
       setCustomers(prev => [...prev, data]);
       setFormData({ name: '', phone: '', email: '' });
@@ -61,6 +67,7 @@ const CustomersPage = () => {
 
   const handleDelete = async (id) => {
     try {
+      // [Req 7 - Peticiones] DELETE /clientes/:id — elimina un cliente
       await api.delete(`/clientes/${id}`);
       setCustomers(prev => prev.filter(c => c.id !== id));
       sileo.error({ title: 'Cliente eliminado', description: 'El cliente fue eliminado' });
@@ -87,6 +94,7 @@ const CustomersPage = () => {
         </div>
       </div>
 
+      {/* [Req 2 - Formularios] Formulario crear cliente: nombre, teléfono, email */}
       <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
           <Plus className="w-5 h-5 mr-2 text-orange-500" />
@@ -167,6 +175,8 @@ const CustomersPage = () => {
           </div>
         ) : (
           <div className="divide-y divide-slate-700">
+            {/* [Req 10 - Filtros] Búsqueda de clientes por nombre o email — filtrado en cliente */}
+            {/* [Req 8 - key] key={customer.id} en lista de clientes */}
             {customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())).map(customer => (
               <div key={customer.id} className="p-6 hover:bg-slate-700/50 transition-colors flex items-center justify-between">
                 <div className="flex items-center space-x-4 flex-1">

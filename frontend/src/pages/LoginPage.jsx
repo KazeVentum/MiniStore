@@ -3,7 +3,10 @@ import { sileo } from 'sileo';
 import { validatePassword, authenticateUser, registerUser, getPasswordStrength } from '../utils/auth.js';
 import { LogIn, UserPlus, Check, X, Eye, EyeOff, Shield, Zap, Users } from 'lucide-react';
 
+// [Req 3 - Componentes] LoginPage recibe onLogin como prop desde App y lo llama al autenticarse
 const LoginPage = ({ onLogin }) => {
+  // [Req 5 - useState] isLogin, username, password, confirmPassword, showPassword, errors, passwordValidations
+  // [Req 2 - Formularios] Controles de Login/Registro controlados por useState
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -12,6 +15,7 @@ const LoginPage = ({ onLogin }) => {
   const [errors, setErrors] = useState({});
   const [passwordValidations, setPasswordValidations] = useState([]);
 
+  // [Req 4 - Eventos] onChange en campo contraseña — actualiza estado y recalcula las validaciones
   const handlePasswordChange = (e) => {
     const value = e.target.value;
     setPassword(value);
@@ -28,6 +32,7 @@ const LoginPage = ({ onLogin }) => {
     }
   };
 
+  // [Req 4 - Eventos] onSubmit del formulario de login/registro
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -138,6 +143,7 @@ const LoginPage = ({ onLogin }) => {
             </button>
           </div>
 
+          {/* [Req 2 - Formularios] Formulario con inputs de texto, contraseña y confirmar contraseña */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -206,8 +212,9 @@ const LoginPage = ({ onLogin }) => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
+                  {/* [Req 8 - key] key={index} en indicadores de validación de contraseña */}
                   {passwordValidations.map((validation, index) => (
-                    <div 
+                    <div
                       key={index}
                       className={`flex items-center space-x-2 text-xs ${
                         validation.test ? 'text-green-400' : 'text-slate-500'
