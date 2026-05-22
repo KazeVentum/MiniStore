@@ -5,6 +5,7 @@ exports.getPedidos = async (req, res) => {
     const { data, error } = await supabase
       .from('pedidos')
       .select('*, clientes(name)')
+      .neq('estado', 'cancelado')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
