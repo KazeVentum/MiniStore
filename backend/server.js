@@ -16,7 +16,7 @@ app.use('/api/clientes', require('./src/routes/clientes'));
 app.use('/api/usuarios', require('./src/routes/usuarios'));
 
 app.get('/', (req, res) => {
-    res.send('BisouStore API is running');
+    res.send('Ariel´s Jewelry API is running');
 });
 
 // Start server

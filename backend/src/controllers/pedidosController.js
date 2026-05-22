@@ -4,8 +4,9 @@ exports.getPedidos = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pedidos')
-      .select('*, clientes(name)')
-      .order('created_at', { ascending: false });
+      .select('*, clientes(nombre_cliente)')
+      .neq('estado', 'cancelado')
+      .order('fecha_creacion', { ascending: false });
 
     if (error) throw error;
     res.json(data);
@@ -39,7 +40,7 @@ exports.createPedido = async (req, res) => {
         product_name: producto.name,
         quantity,
         total,
-        id_cliente: id_cliente || null,
+        id_cliente: id_cliente || null, 
         notes: notes || null
       }])
       .select();
@@ -56,11 +57,11 @@ exports.deletePedido = async (req, res) => {
   try {
     const { error } = await supabase
       .from('pedidos')
-      .delete()
-      .eq('id', req.params.id);
+      .update({ estado: 'cancelado' })
+      .eq('id_pedido', req.params.id);
 
     if (error) throw error;
-    res.json({ message: 'Pedido eliminado' });
+    res.json({ message: 'Pedido cancelado' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al eliminar el pedido', error: error.message });

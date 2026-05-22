@@ -3,7 +3,7 @@ import { sileo } from 'sileo';
 import { validatePassword, authenticateUser, registerUser, getPasswordStrength } from '../utils/auth.js';
 import { LogIn, UserPlus, Check, X, Eye, EyeOff, Shield, Zap, Users } from 'lucide-react';
 
-// [Req 3 - Componentes] LoginPage recibe onLogin como prop desde App y lo llama al autenticarse
+// F- Componentes] LoginPage recibe onLogin como prop desde App y lo llama al autenticarse
 const LoginPage = ({ onLogin }) => {
   // [Req 5 - useState] isLogin, username, password, confirmPassword, showPassword, errors, passwordValidations
   // [Req 2 - Formularios] Controles de Login/Registro controlados por useState
