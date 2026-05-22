@@ -4,9 +4,8 @@ exports.getPedidos = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pedidos')
-      .select('*, clientes(nombre_cliente)')
-      .neq('estado', 'cancelado')
-      .order('fecha_creacion', { ascending: false });
+      .select('*, clientes(name)')
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     res.json(data);
@@ -58,7 +57,7 @@ exports.deletePedido = async (req, res) => {
     const { error } = await supabase
       .from('pedidos')
       .update({ estado: 'cancelado' })
-      .eq('id_pedido', req.params.id);
+      .eq('id', req.params.id);
 
     if (error) throw error;
     res.json({ message: 'Pedido cancelado' });

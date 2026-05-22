@@ -5,8 +5,7 @@ exports.getClientes = async (req, res) => {
     const { data, error } = await supabase
       .from('clientes')
       .select('*')
-      .eq('activo', true)
-      .order('nombre_cliente', { ascending: true });
+      .order('name', { ascending: true });
 
     if (error) throw error;
     res.json(data);
@@ -37,7 +36,7 @@ exports.deleteCliente = async (req, res) => {
     const { error } = await supabase
       .from('clientes')
       .update({ activo: false })
-      .eq('id_cliente', req.params.id);
+      .eq('id', req.params.id);
 
     if (error) throw error;
     res.json({ message: 'Cliente desactivado' });
