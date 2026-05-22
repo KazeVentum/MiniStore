@@ -380,27 +380,29 @@ const ProductsPage = () => {
             <p className="text-slate-500">{search ? 'Sin resultados' : 'No hay productos'}</p>
           </div>
         ) : (
-          {/* [Req 12 - Drag and Drop] DndContext y SortableContext envuelven la lista de productos */}
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={filtered.map(p => p.id)} strategy={verticalListSortingStrategy}>
-              <div>
-                {/* [Req 8 - key] key={product.id} en lista de productos */}
-                {filtered.map(product => (
-                  <SortableProduct
-                    key={product.id}
-                    product={product}
-                    isEditing={editProduct?.id === product.id}
-                    editFormData={editFormData}
-                    onEditChange={handleEditChange}
-                    onSave={handleSaveEdit}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onCancel={() => setEditProduct(null)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+          <>
+            {/* [Req 12 - Drag and Drop] DndContext y SortableContext envuelven la lista de productos */}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={filtered.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                <div>
+                  {/* [Req 8 - key] key={product.id} en lista de productos */}
+                  {filtered.map(product => (
+                    <SortableProduct
+                      key={product.id}
+                      product={product}
+                      isEditing={editProduct?.id === product.id}
+                      editFormData={editFormData}
+                      onEditChange={handleEditChange}
+                      onSave={handleSaveEdit}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onCancel={() => setEditProduct(null)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </div>
     </div>
